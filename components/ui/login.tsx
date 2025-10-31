@@ -2,20 +2,37 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import React from "react";
+import React, { useEffect } from "react";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../../firebase";
+import { useAuth } from "../../providers/AuthProvider";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.push('/dashboard/m');
+        }
+    }, [loading, user, router]);
+
     const handleGoogleSignIn = async () => {
         try {
-            const result = await signInWithPopup(auth, provider);
-            console.log(result.user.displayName);
-
+            await signInWithPopup(auth, provider);
         } catch (error) {
             console.error("Google sign-in error:", error);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-lg">Loading...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen flex-col bg-white text-gray-900">
