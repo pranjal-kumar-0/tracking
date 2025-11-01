@@ -19,33 +19,41 @@ export default function LoginPage({ userType }: LoginPageProps) {
     let title = "Welcome Back";
     let description = "Sign in to access your dashboard.";
     const buttonText = "Sign in with Google";
-    let redirectPath = "/dashboard/m";
 
     if (userType === "club") {
         title = "Club Login";
         description = "Sign in as a club representative.";
-        redirectPath = "/dashboard/c"; 
     } else if (userType === "superadmin") {
         title = "Super Admin Login";
         description = "Sign in as super admin.";
-        redirectPath = "/dashboard/sa";
     }
 
+    
     useEffect(() => {
         if (!loading && user) {
-            router.push(redirectPath);
+            router.push("/dashboard"); 
         }
-    }, [loading, user, router, redirectPath]);
+    }, [loading, user, router]);
 
     const handleGoogleSignIn = async () => {
         try {
-            await signInWithPopup(auth, provider);
+            const userCredential = await signInWithPopup(auth, provider);            
+            const idToken = await userCredential.user.getIdToken();
+
+            await fetch("/api/auth/session", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ idToken }),
+            });
+            
         } catch (error) {
             console.error("Google sign-in error:", error);
         }
     };
 
-    if (loading) {
+    if (loading || (!loading && user)) { 
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-lg">Loading...</div>
