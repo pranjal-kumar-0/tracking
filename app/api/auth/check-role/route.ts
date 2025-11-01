@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ role: role || "member" });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return NextResponse.json({ role: "none" }, { status: 401 });
   }
