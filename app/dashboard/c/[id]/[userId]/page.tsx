@@ -315,8 +315,9 @@ const TaskModal = ({
 
 // main page component
 export default function Page() {
-    const params = useParams<{ id: string }>();
+    const params = useParams<{ id: string, userId: string }>();
     const id = params.id;
+    const userId = params.userId;
     const { user } = useAuth();
 
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -359,7 +360,7 @@ export default function Page() {
         const fetchTasks = async () => {
             if (!user || !id) return;
             try {
-                const res = await fetch(`/api/user/tasks/get-task?clubId=${id}&userId=${user.uid}`);
+                const res = await fetch(`/api/user/tasks/get-task?clubId=${id}&userId=${userId}`);
                 if (res.ok) {
                     const data = await res.json();
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
