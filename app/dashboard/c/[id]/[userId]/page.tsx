@@ -1,40 +1,49 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import {
-    Plus,
-    Edit2,
-    X,
     ClipboardCheck,
     User,
     CalendarDays,
-    ChevronsUpDown,
-    Trash2,
+    Plus,
+    X,
+    Trash,
 } from "lucide-react";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
-import { useAuth } from "@/providers/AuthProvider";
-import { useParams } from "next/navigation";
+import { useAuth } from "../../../../../providers/AuthProvider";
+import Image from "next/image";
 
-// types for tasks and clubs
-interface Task {
-    id: string;
-    createdAt: string;
-    department: string;
+interface ProgressTask {
+    progressId: string;
+    createdAt: {
+        _seconds: number;
+        _nanoseconds: number;
+    };
     description: string;
-    title: string;
-    dueDate: string; 
+    dueDate: {
+        _seconds: number;
+        _nanoseconds: number;
+    };
+    givenBy: string;
     status: number;
-    givenBy: "personal" | "club";
+    title: string;
 }
 
-interface Club {
-    id: string;
+interface UserData {
+    email: string;
     name: string;
-    departments: string[];
-    createdAt: Date;
+    photoURL: string | null;
+    department: string;
+    role: string;
+    progress: ProgressTask[];
 }
 
-// progress bar component
+// --- Sub-Components ---
+
+/**
+ * Custom progress bar component, inspired by the reference image.
+ */
 const SteppedProgressBar = ({ progress }: { progress: number }) => {
     const segments = 10;
     const filledSegments = Math.round((progress / 100) * segments);
@@ -53,39 +62,108 @@ const SteppedProgressBar = ({ progress }: { progress: number }) => {
     );
 };
 
-// task card to display each task
+/**
+ * Edit Due Date Modal Component
+ */
+const EditDueDateModal = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    currentDueDate,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: (newDueDate: string) => void;
+    currentDueDate: string;
+}) => {
+    const [dueDate, setDueDate] = useState(currentDueDate);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (dueDate) {
+            onSubmit(dueDate);
+            onClose();
+        }
+    };
+
+    useEffect(() => {
+        setDueDate(currentDueDate);
+    }, [currentDueDate]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold ">Edit Due Date</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <X size={20} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                        <input
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                            Update
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Task Card Component
+ */
 const TaskCard = ({
     task,
-    onEdit,
-    onDelete,
+    onEditDueDate,
+    onDeleteTask,
 }: {
-    task: Task;
-    onEdit: (task: Task) => void;
-    onDelete: (task: Task) => void;
+    task: ProgressTask;
+    onEditDueDate: (progressId: string, currentDueDate: string) => void;
+    onDeleteTask: (progressId: string) => void;
 }) => {
-    const isOverdue = new Date(task.dueDate) < new Date() && task.status < 100;
+    const isOverdue = new Date(task.dueDate._seconds * 1000) < new Date() && task.status < 100;
 
     return (
         <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
             <div className="flex justify-between items-start mb-3">
                 <h3 className="text-lg font-semibold text-gray-800">{task.title}</h3>
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                     <button
-                        onClick={() => onEdit(task)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200 shadow-sm"
-                        aria-label="Edit task"
+                        onClick={() => onEditDueDate(task.progressId, new Date(task.dueDate._seconds * 1000).toISOString().split('T')[0])}
+                        className="text-blue-500 hover:text-blue-700 text-sm hover:cursor-pointer"
                     >
-                        <Edit2 size={18} />
+                        Edit Due Date
                     </button>
-                    {task.givenBy === "personal" && (
-                        <button
-                            onClick={() => onDelete(task)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 shadow-sm"
-                            aria-label="Delete task"
-                        >
-                            <Trash2 size={18} />
+                    <button
+                        onClick={() => onDeleteTask(task.progressId)}
+                        className="text-red-500 hover:text-red-700 text-sm hover:cursor-pointer"
+                    >
+                        <Trash size={16} />
                     </button>
-                    )}
                 </div>
             </div>
             <p className="text-sm text-gray-600 mb-4">{task.description}</p>
@@ -111,7 +189,7 @@ const TaskCard = ({
                     <CalendarDays size={16} />
                     <span>
                         {isOverdue ? "Overdue" : "Due"}:{" "}
-                        {new Date(task.dueDate).toLocaleDateString()}
+                        {new Date(task.dueDate._seconds * 1000).toLocaleDateString('en-GB')}
                     </span>
                 </div>
                 {task.status === 100 && (
@@ -124,187 +202,88 @@ const TaskCard = ({
     );
 };
 
-// modal for adding or editing tasks
-const TaskModal = ({
+/**
+ * Add Task Modal Component
+ */
+const AddTaskModal = ({
     isOpen,
     onClose,
-    onSave,
-    task,
+    onSubmit,
 }: {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (task: Omit<Task, "id" | "createdAt" | "department"> & { id?: string }) => void;
-    task: Partial<Task> | null;
+    onSubmit: (task: { title: string; description: string; dueDate: string }) => void;
 }) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [dueDate, setDueDate] = useState("");
-    const [status, setStatus] = useState(0);
-    const [givenBy, setGivenBy] = useState<"personal" | "club">("personal");
-
-    React.useEffect(() => {
-        if (task) {
-            setTitle(task.title || "");
-            setDescription(task.description || "");
-            setDueDate(task.dueDate || new Date().toISOString().split("T")[0]);
-            setStatus(task.status || 0);
-            setGivenBy(task.givenBy || "personal");
-        } else {
-            // Reset for new task
-            setTitle("");
-            setDescription("");
-            setDueDate(new Date().toISOString().split("T")[0]);
-            setStatus(0);
-            setGivenBy("personal");
-        }
-    }, [task, isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({
-            id: task?.id,
-            title,
-            description,
-            dueDate,
-            status,
-            givenBy,
-        });
+        if (title && description && dueDate) {
+            onSubmit({ title, description, dueDate });
+            setTitle("");
+            setDescription("");
+            setDueDate("");
+            onClose();
+        }
     };
-
-    const isEditing = !!task?.id;
 
     if (!isOpen) return null;
 
     return (
-        <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-center"
-            onClick={onClose}
-        >
-            <div
-                className="bg-white w-full max-w-lg p-6 rounded-xl shadow-2xl relative m-4"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-all"
-                >
-                    <X size={24} />
-                </button>
-                <h2 className="text-xl font-bold text-gray-900 mb-6">
-                    {isEditing ? "Update Progress" : "Add New Task"}
-                </h2>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isEditing && (
-                        <>
-                            {/* Title */}
-                            <div>
-                                <label
-                                    htmlFor="title"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
-                                >
-                                    Title
-                                </label>
-                                <input
-                                    type="text"
-                                    id="title"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <label
-                                    htmlFor="description"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
-                                >
-                                    Description
-                                </label>
-                                <textarea
-                                    id="description"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            {/* Row for Date and Type */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label
-                                        htmlFor="dueDate"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Due Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        id="dueDate"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label
-                                        htmlFor="givenBy"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Task Type
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            id="givenBy"
-                                            value={givenBy}
-                                            onChange={(e) => setGivenBy(e.target.value as "personal" | "club")}
-                                            className="w-full appearance-none px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="personal">Personal</option>
-                                            <option value="club">Club</option>
-                                        </select>
-                                        <ChevronsUpDown
-                                            size={18}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* Status/Progress */}
-                    <div>
-                        <label
-                            htmlFor="status"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                            Progress: <span className="font-bold text-blue-600">{status}%</span>
-                        </label>
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Add New Task</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <X size={20} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                         <input
-                            type="range"
-                            id="status"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={status}
-                            onChange={(e) => setStatus(Number(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
                         />
                     </div>
-
-                    {/* Save Button */}
-                    <div className="flex justify-end pt-4">
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows={3}
+                            required
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                        <input
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
                         <button
                             type="submit"
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                         >
-                            <Plus size={18} />
-                            {isEditing ? "Update Progress" : "Create Task"}
+                            Add Task
                         </button>
                     </div>
                 </form>
@@ -313,98 +292,251 @@ const TaskModal = ({
     );
 };
 
-// main page component
+/**
+ * Remove Member Confirmation Modal Component
+ */
+const RemoveMemberModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Remove Member</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <X size={20} />
+                    </button>
+                </div>
+                <p className="text-gray-700 mb-6">
+                    Are you sure you want to remove this member from the club? This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    >
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Delete Task Confirmation Modal Component
+ */
+const DeleteTaskModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Delete Task</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <X size={20} />
+                    </button>
+                </div>
+                <p className="text-gray-700 mb-6">
+                    Are you sure you want to delete this task? This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Main Page Component ---
 export default function Page() {
-    const params = useParams<{ id: string, userId: string }>();
-    const id = params.id;
-    const userId = params.userId;
+    const params = useParams<{ id: string; userId: string }>();
+    const { id, userId } = params;
     const { user } = useAuth();
 
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState<Partial<Task> | null>(null);
-
-    const [userClubs, setUserClubs] = useState<string[]>([]);
-    const [allClubs, setAllClubs] = useState<Club[]>([]);
+    const [data, setData] = useState<UserData | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedDepartment, setSelectedDepartment] = useState("");
-    const [applied, setApplied] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState<{ progressId: string; currentDueDate: string } | null>(null);
+    const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
-    // fetch user clubs and all clubs
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [clubsRes, allClubsRes] = await Promise.all([
-                    fetch('/api/user/clubs/get-my-clubs'),
-                    fetch('/api/user/clubs/get-all-clubs')
-                ]);
-                if (clubsRes.ok) {
-                    const clubs = await clubsRes.json();
-                    setUserClubs(clubs);
-                }
-                if (allClubsRes.ok) {
-                    const clubs = await allClubsRes.json();
-                    setAllClubs(clubs);
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
-
-    // fetch tasks for the club
-    useEffect(() => {
-        const fetchTasks = async () => {
-            if (!user || !id) return;
-            try {
-                const res = await fetch(`/api/user/tasks/get-task?clubId=${id}&userId=${userId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const clubTasks = data.map((t: any) => ({
-                        id: t.progressId,
-                        createdAt: new Date(t.createdAt._seconds * 1000).toISOString(),
-                        department: "Club",
-                        description: t.description,
-                        title: t.title,
-                        dueDate: new Date(t.dueDate._seconds * 1000).toISOString().split('T')[0],
-                        status: t.status,
-                        givenBy: "club" as const
-                    }));
-                    setTasks(clubTasks);
-                }
-            } catch (error) {
-                console.error('Error fetching tasks:', error);
-            }
-        };
-        fetchTasks();
-    }, [user, id]);
-
-    const clubData = allClubs.find(c => c.id === id);
-
-    const handleApply = async () => {
-        if (!selectedDepartment) {
-            alert('Please select a department');
-            return;
-        }
+    const fetchData = async () => {
         try {
-            const res = await fetch('/api/user/clubs/apply', {
+            const response = await fetch(`/api/admin/members/get-member-info?userId=${userId}&clubId=${id}`);
+            if (response.ok) {
+                const result = await response.json();
+                setData(result);
+            } else {
+                setError(`Error: ${response.status} ${response.statusText}`);
+            }
+        } catch (err) {
+            setError(`Fetch error: ${err}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (id && userId) {
+            fetchData();
+        }
+    }, [id, userId]);
+
+    const handleAddTask = async (task: { title: string; description: string; dueDate: string }) => {
+        const createdAt = new Date();
+        const dueDateObj = new Date(task.dueDate);
+
+        const payload = {
+            clubId: id,
+            userId,
+            createdAt: {
+                _seconds: Math.floor(createdAt.getTime() / 1000),
+                _nanoseconds: 0,
+            },
+            description: task.description,
+            dueDate: {
+                _seconds: Math.floor(dueDateObj.getTime() / 1000),
+                _nanoseconds: 0,
+            },
+            title: task.title,
+        };
+
+        try {
+            const response = await fetch('/api/admin/tasks/give-task', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ clubId: id, department: selectedDepartment })
+                body: JSON.stringify(payload),
             });
-            if (res.ok) {
-                setApplied(true);
+
+            if (response.ok) {
+                // Refetch data to update the list
+                fetchData();
             } else {
-                const error = await res.json();
-                alert(error.error || 'Failed to apply');
+                alert('Failed to add task');
             }
-        } catch (error) {
-            console.error('Error applying:', error);
-            alert('Error applying');
+        } catch (err) {
+            alert('Error adding task');
+        }
+    };
+
+    const handleEditDueDate = (progressId: string, currentDueDate: string) => {
+        setEditingTask({ progressId, currentDueDate });
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateDueDate = async (newDueDate: string) => {
+        if (!editingTask) return;
+
+        const dueDateObj = new Date(newDueDate);
+        const payload = {
+            progressId: editingTask.progressId,
+            newDueDate: {
+                _seconds: Math.floor(dueDateObj.getTime() / 1000),
+                _nanoseconds: 0,
+            },
+        };
+
+        try {
+            const response = await fetch('/api/admin/tasks/update-duedate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                fetchData();
+            } else {
+                alert('Failed to update due date');
+            }
+        } catch (err) {
+            alert('Error updating due date');
+        }
+    };
+
+    const handleRemoveMember = async () => {
+        const payload = { clubId: id, userId };
+
+        try {
+            const response = await fetch('/api/admin/members/remove-member', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                // Redirect to club members page
+                window.location.href = `/dashboard/c/${id}`;
+            } else {
+                alert('Failed to remove member');
+            }
+        } catch (err) {
+            alert('Error removing member');
+        }
+    };
+
+    const handleDeleteTask = (progressId: string) => {
+        setDeletingTaskId(progressId);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDeleteTask = async () => {
+        if (!deletingTaskId) return;
+
+        try {
+            const response = await fetch('/api/admin/tasks/delete-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ progressId: deletingTaskId }),
+            });
+
+            if (response.ok) {
+                fetchData();
+            } else {
+                alert('Failed to delete task');
+            }
+        } catch (err) {
+            alert('Error deleting task');
+        } finally {
+            setIsDeleteModalOpen(false);
+            setDeletingTaskId(null);
         }
     };
 
@@ -416,177 +548,93 @@ export default function Page() {
         );
     }
 
-    if (!clubData) {
+    if (error) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-gray-500">Club not found</div>
+                <div className="text-red-500">{error}</div>
             </div>
         );
     }
 
-    const isMember = userClubs.includes(id);
-
-    if (!isMember) {
+    if (!data) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-4">Apply to {clubData.name}</h1>
-                    {applied ? (
-                        <p className="text-green-600 text-center">Application submitted successfully! Waiting for approval.</p>
-                    ) : (
-                        <>
-                            <div className="mb-4">
-                                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Department
-                                </label>
-                                <select
-                                    id="department"
-                                    value={selectedDepartment}
-                                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Choose a department</option>
-                                    {clubData.departments.map((dept: string) => (
-                                        <option key={dept} value={dept}>
-                                            {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <button
-                                onClick={handleApply}
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                            >
-                                Apply
-                            </button>
-                        </>
-                    )}
-                </div>
+                <div className="text-gray-500">No data available</div>
             </div>
         );
     }
-
-    // Filter tasks
-    const clubTasks = tasks.filter((task) => task.givenBy === "club");
-    const personalTasks = tasks.filter((task) => task.givenBy === "personal");
-
-    const handleOpenModal = (task: Task | null) => {
-        setEditingTask(task);
-        setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setEditingTask(null);
-    };
-
-    const handleSaveTask = async (
-        taskData: Omit<Task, "id" | "createdAt" | "department"> & { id?: string }
-    ) => {
-        if (taskData.id) {
-            // Update existing task (only progress for editing)
-            try {
-                const res = await fetch('/api/user/tasks/update-progress', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ progressId: taskData.id, status: taskData.status }),
-                });
-
-                if (res.ok) {
-                    setTasks(
-                        tasks.map((t) =>
-                            t.id === taskData.id ? { ...t, status: taskData.status } : t
-                        )
-                    );
-                } else {
-                    const error = await res.json();
-                    alert(error.error || 'Failed to update progress');
-                }
-            } catch (error) {
-                console.error('Error updating progress:', error);
-                alert('Error updating progress');
-            }
-        } else {
-            // Add new task via API
-            const createdAt = {
-                _seconds: Math.floor(Date.now() / 1000),
-                _nanoseconds: 0,
-            };
-            const dueDateObj = new Date(taskData.dueDate);
-            const dueDate = {
-                _seconds: Math.floor(dueDateObj.getTime() / 1000),
-                _nanoseconds: 0,
-            };
-
-            const payload = {
-                userId: user?.uid,
-                clubId: id,
-                createdAt,
-                description: taskData.description,
-                dueDate,
-                givenBy: taskData.givenBy,
-                status: taskData.status,
-                title: taskData.title,
-            };
-
-            try {
-                const res = await fetch('/api/user/tasks/add-task', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-
-                if (res.ok) {
-                    // Add to local state
-                    const newTask: Task = {
-                        ...taskData,
-                        id: crypto.randomUUID(),
-                        createdAt: new Date().toISOString(),
-                        department: "Technical",
-                    };
-                    setTasks([newTask, ...tasks]);
-                } else {
-                    const error = await res.json();
-                    alert(error.error || 'Failed to add task');
-                }
-            } catch (error) {
-                console.error('Error adding task:', error);
-                alert('Error adding task');
-            }
-        }
-        handleCloseModal();
-    };
-
-    const handleDeleteTask = (task: Task) => {
-        if (window.confirm(`Are you sure you want to delete the task "${task.title}"?`)) {
-            setTasks(tasks.filter((t) => t.id !== task.id));
-        }
-    };
 
     return (
         <div className="min-h-screen bg-slate-50 relative">
             <DashboardNavbar user={user} />
             <div className="max-w-7xl mx-auto space-y-6 p-4">
+                {/* User Info Section */}
+                <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {data.photoURL ? (
+                                <Image
+                                    src={data.photoURL}
+                                    alt={data.name}
+                                    className="w-16 h-16 rounded-full object-cover"
+                                    width={64}
+                                    height={64}
+                                />
+                            ) : (
+                                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                                    <User size={32} className="text-gray-500" />
+                                </div>
+                            )}
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-800">{data.name}</h1>
+                                <p className="text-gray-600">{data.email}</p>
+                                <div className="flex gap-4 mt-2">
+                                    <span className="text-sm text-gray-500">
+                                        Department: <span className="font-medium">{data.department.charAt(0).toUpperCase() + data.department.slice(1)}</span>
+                                    </span>
+                                    <span className="text-sm text-gray-500">
+                                        Role: <span className="font-medium capitalize">{data.role}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setIsRemoveModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hover:cursor-pointer"
+                        >
+                            <Trash size={16} />
+                            Remove Member
+                        </button>
+                    </div>
+                </section>
 
-
-                {/* Task Sections */}
+                {/* Tasks Section */}
                 <main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Club Tasks */}
                     <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <div className="flex items-center gap-3 mb-4">
-                            <ClipboardCheck className="text-blue-600" size={24} />
-                            <h2 className="text-xl font-semibold text-gray-800">
-                                Club Tasks ({clubTasks.length})
-                            </h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <ClipboardCheck className="text-blue-600" size={24} />
+                                <h2 className="text-xl font-semibold text-gray-800">
+                                    Club Tasks ({data.progress.filter(t => t.givenBy === "club").length})
+                                </h2>
+                            </div>
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hover:cursor-pointer"
+                            >
+                                <Plus size={16} />
+                                Add Task
+                            </button>
                         </div>
                         <div className="space-y-4">
-                            {clubTasks.length > 0 ? (
-                                clubTasks.map((task) => (
+                            {data.progress.filter(t => t.givenBy === "club").length > 0 ? (
+                                data.progress.filter(t => t.givenBy === "club").map((task, index) => (
                                     <TaskCard
-                                        key={task.id}
+                                        key={index}
                                         task={task}
-                                        onEdit={handleOpenModal}
-                                        onDelete={handleDeleteTask}
+                                        onEditDueDate={handleEditDueDate}
+                                        onDeleteTask={handleDeleteTask}
                                     />
                                 ))
                             ) : (
@@ -602,22 +650,22 @@ export default function Page() {
                         <div className="flex items-center gap-3 mb-4">
                             <User className="text-green-600" size={24} />
                             <h2 className="text-xl font-semibold text-gray-800">
-                                Personal Tasks ({personalTasks.length})
+                                Personal Tasks ({data.progress.filter(t => t.givenBy === "personal").length})
                             </h2>
                         </div>
                         <div className="space-y-4">
-                            {personalTasks.length > 0 ? (
-                                personalTasks.map((task) => (
+                            {data.progress.filter(t => t.givenBy === "personal").length > 0 ? (
+                                data.progress.filter(t => t.givenBy === "personal").map((task, index) => (
                                     <TaskCard
-                                        key={task.id}
+                                        key={index}
                                         task={task}
-                                        onEdit={handleOpenModal}
-                                        onDelete={handleDeleteTask}
+                                        onEditDueDate={handleEditDueDate}
+                                        onDeleteTask={handleDeleteTask}
                                     />
                                 ))
                             ) : (
                                 <p className="text-gray-500 text-center py-4">
-                                    No personal tasks added.
+                                    No personal tasks.
                                 </p>
                             )}
                         </div>
@@ -625,21 +673,31 @@ export default function Page() {
                 </main>
             </div>
 
-            {/* Floating Action Button for Add New Task */}
-            <button
-                onClick={() => handleOpenModal(null)}
-                className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center z-50"
-                aria-label="Add new task"
-            >
-                <Plus size={24} />
-            </button>
-
-            {/* Modal */}
-            <TaskModal
+            <AddTaskModal
                 isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                onSave={handleSaveTask}
-                task={editingTask}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleAddTask}
+            />
+
+            {editingTask && (
+                <EditDueDateModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSubmit={handleUpdateDueDate}
+                    currentDueDate={editingTask.currentDueDate}
+                />
+            )}
+
+            <RemoveMemberModal
+                isOpen={isRemoveModalOpen}
+                onClose={() => setIsRemoveModalOpen(false)}
+                onConfirm={handleRemoveMember}
+            />
+
+            <DeleteTaskModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDeleteTask}
             />
         </div>
     );
