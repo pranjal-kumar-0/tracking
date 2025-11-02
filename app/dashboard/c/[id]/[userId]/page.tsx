@@ -328,7 +328,6 @@ export default function Page() {
     const [loading, setLoading] = useState(true);
     const [selectedDepartment, setSelectedDepartment] = useState("");
     const [applied, setApplied] = useState(false);
-    const [refetchTrigger, setRefetchTrigger] = useState(0);
 
     // fetch user clubs and all clubs
     useEffect(() => {
@@ -364,7 +363,7 @@ export default function Page() {
                 if (res.ok) {
                     const data = await res.json();
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const allTasks = data.map((t: any) => ({
+                    const clubTasks = data.map((t: any) => ({
                         id: t.progressId,
                         createdAt: new Date(t.createdAt._seconds * 1000).toISOString(),
                         department: "Club",
@@ -372,16 +371,16 @@ export default function Page() {
                         title: t.title,
                         dueDate: new Date(t.dueDate._seconds * 1000).toISOString().split('T')[0],
                         status: t.status,
-                        givenBy: t.givenBy as "personal" | "club"
+                        givenBy: "club" as const
                     }));
-                    setTasks(allTasks);
+                    setTasks(clubTasks);
                 }
             } catch (error) {
                 console.error('Error fetching tasks:', error);
             }
         };
         fetchTasks();
-    }, [user, id, refetchTrigger]);
+    }, [user, id]);
 
     const clubData = allClubs.find(c => c.id === id);
 
@@ -537,7 +536,14 @@ export default function Page() {
                 });
 
                 if (res.ok) {
-                    setRefetchTrigger(prev => prev + 1);
+                    // Add to local state
+                    const newTask: Task = {
+                        ...taskData,
+                        id: crypto.randomUUID(),
+                        createdAt: new Date().toISOString(),
+                        department: "Technical",
+                    };
+                    setTasks([newTask, ...tasks]);
                 } else {
                     const error = await res.json();
                     alert(error.error || 'Failed to add task');
@@ -550,24 +556,10 @@ export default function Page() {
         handleCloseModal();
     };
 
-    const handleDeleteTask = async (task: Task) => {
-            try {
-                const res = await fetch('/api/user/tasks/delete-personal-task', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ progressId: task.id }),
-                });
-
-                if (res.ok) {
-                    setTasks(tasks.filter((t) => t.id !== task.id));
-                } else {
-                    const error = await res.json();
-                    alert(error.error || 'Failed to delete task');
-                }
-            } catch (error) {
-                console.error('Error deleting task:', error);
-                alert('Error deleting task');
-            }
+    const handleDeleteTask = (task: Task) => {
+        if (window.confirm(`Are you sure you want to delete the task "${task.title}"?`)) {
+            setTasks(tasks.filter((t) => t.id !== task.id));
+        }
     };
 
     return (

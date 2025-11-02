@@ -195,18 +195,20 @@ export default function Page() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {deptMembers.map(mem => (
-                    <div key={mem.id} className="bg-linear-to-br from-gray-50 to-gray-100 p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">{mem.name || 'No Name'}</p>
-                          <p className="text-xs text-gray-600">{mem.email}</p>
+                    <Link key={mem.id} href={`/dashboard/c/${id}/${mem.id}`}>
+                      <div className="bg-linear-to-br from-gray-50 to-gray-100 p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{mem.name || 'No Name'}</p>
+                            <p className="text-xs text-gray-600">{mem.email}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <p><span className="font-medium">Role:</span> {mem.role || 'Member'}</p>
+                          <p><span className="font-medium">Joined:</span> {mem.joinedAt ? new Date(mem.joinedAt._seconds * 1000).toLocaleDateString() : 'Unknown'}</p>
                         </div>
                       </div>
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <p><span className="font-medium">Role:</span> {mem.role || 'Member'}</p>
-                        <p><span className="font-medium">Joined:</span> {mem.joinedAt ? new Date(mem.joinedAt._seconds * 1000).toLocaleDateString() : 'Unknown'}</p>
-                      </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

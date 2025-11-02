@@ -7,6 +7,7 @@ export const config = {
     "/dashboard/m/:path*",
     "/dashboard/c/:path*",
     "/dashboard/sa/:path*",
+    "/a/:path*",
   ],
 };
 
@@ -38,6 +39,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const { role } = await response.json();
+
+  if (pathname.startsWith("/a")) {
+    return NextResponse.next();
+  }
   
   if (role === "super_admin") {
     if (pathname === "/dashboard") {

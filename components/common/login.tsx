@@ -31,9 +31,17 @@ export default function LoginPage({ userType }: LoginPageProps) {
     
     useEffect(() => {
         if (!loading && user) {
-            router.push("/dashboard"); 
+            if (userType === "member") {
+                router.push("/dashboard/m");
+            } else if (userType === "club") {
+                router.push("/dashboard/c");
+            } else if (userType === "superadmin") {
+                router.push("/dashboard/sa");
+            } else {
+                router.push("/dashboard");
+            }
         }
-    }, [loading, user, router]);
+    }, [loading, user, router, userType]);
 
     const handleGoogleSignIn = async () => {
         try {
