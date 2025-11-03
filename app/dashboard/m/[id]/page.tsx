@@ -10,6 +10,7 @@ import {
     CalendarDays,
     ChevronsUpDown,
     Trash2,
+    Loader,
 } from "lucide-react";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
 import { useAuth } from "@/providers/AuthProvider";
@@ -130,11 +131,13 @@ const TaskModal = ({
     onClose,
     onSave,
     task,
+    isSaving,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onSave: (task: Omit<Task, "id" | "createdAt" | "department"> & { id?: string }) => void;
     task: Partial<Task> | null;
+    isSaving: boolean;
 }) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -187,6 +190,7 @@ const TaskModal = ({
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-all"
+                    disabled={isSaving}
                 >
                     <X size={24} />
                 </button>
@@ -210,6 +214,7 @@ const TaskModal = ({
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     required
+                                    disabled={isSaving}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
@@ -226,6 +231,7 @@ const TaskModal = ({
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     rows={3}
+                                    disabled={isSaving}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
@@ -244,6 +250,7 @@ const TaskModal = ({
                                         value={dueDate}
                                         onChange={(e) => setDueDate(e.target.value)}
                                         required
+                                        disabled={isSaving}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -259,6 +266,7 @@ const TaskModal = ({
                                             id="givenBy"
                                             value={givenBy}
                                             onChange={(e) => setGivenBy(e.target.value as "personal" | "club")}
+                                            disabled={isSaving}
                                             className="w-full appearance-none px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         >
                                             <option value="personal">Personal</option>
@@ -290,6 +298,7 @@ const TaskModal = ({
                             step="5"
                             value={status}
                             onChange={(e) => setStatus(Number(e.target.value))}
+                            disabled={isSaving}
                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                         />
                     </div>
@@ -298,8 +307,10 @@ const TaskModal = ({
                     <div className="flex justify-end pt-4">
                         <button
                             type="submit"
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50"
                         >
+                            {isSaving && <Loader size={18} className="animate-spin" />}
                             <Plus size={18} />
                             {isEditing ? "Update Progress" : "Create Task"}
                         </button>
@@ -326,6 +337,10 @@ export default function Page() {
     const [selectedDepartment, setSelectedDepartment] = useState("");
     const [applied, setApplied] = useState(false);
     const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+    const [isApplying, setIsApplying] = useState(false);
+    const [isSavingTask, setIsSavingTask] = useState(false);
+    const [isDeletingTask, setIsDeletingTask] = useState(false);
 
     // fetch user clubs and all clubs
     useEffect(() => {
@@ -383,10 +398,8 @@ export default function Page() {
     const clubData = allClubs.find(c => c.id === id);
 
     const handleApply = async () => {
-        if (!selectedDepartment) {
-            alert('Please select a department');
-            return;
-        }
+        if (!selectedDepartment) return;
+        setIsApplying(true);
         try {
             const res = await fetch('/api/user/clubs/apply', {
                 method: 'POST',
@@ -395,13 +408,11 @@ export default function Page() {
             });
             if (res.ok) {
                 setApplied(true);
-            } else {
-                const error = await res.json();
-                alert(error.error || 'Failed to apply');
             }
         } catch (error) {
             console.error('Error applying:', error);
-            alert('Error applying');
+        } finally {
+            setIsApplying(false);
         }
     };
 
@@ -440,6 +451,7 @@ export default function Page() {
                                     id="department"
                                     value={selectedDepartment}
                                     onChange={(e) => setSelectedDepartment(e.target.value)}
+                                    disabled={isApplying}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Choose a department</option>
@@ -452,8 +464,10 @@ export default function Page() {
                             </div>
                             <button
                                 onClick={handleApply}
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                disabled={isApplying}
+                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                             >
+                                {isApplying && <Loader size={16} className="animate-spin" />}
                                 Apply
                             </button>
                         </>
@@ -480,6 +494,7 @@ export default function Page() {
     const handleSaveTask = async (
         taskData: Omit<Task, "id" | "createdAt" | "department"> & { id?: string }
     ) => {
+        setIsSavingTask(true);
         if (taskData.id) {
             try {
                 const res = await fetch('/api/user/tasks/update-progress', {
@@ -494,13 +509,9 @@ export default function Page() {
                             t.id === taskData.id ? { ...t, status: taskData.status } : t
                         )
                     );
-                } else {
-                    const error = await res.json();
-                    alert(error.error || 'Failed to update progress');
                 }
             } catch (error) {
                 console.error('Error updating progress:', error);
-                alert('Error updating progress');
             }
         } else {
             // Add new task via API
@@ -534,36 +545,32 @@ export default function Page() {
 
                 if (res.ok) {
                     setRefetchTrigger(prev => prev + 1);
-                } else {
-                    const error = await res.json();
-                    alert(error.error || 'Failed to add task');
                 }
             } catch (error) {
                 console.error('Error adding task:', error);
-                alert('Error adding task');
             }
         }
+        setIsSavingTask(false);
         handleCloseModal();
     };
 
     const handleDeleteTask = async (task: Task) => {
-            try {
-                const res = await fetch('/api/user/tasks/delete-personal-task', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ progressId: task.id }),
-                });
+        setIsDeletingTask(true);
+        try {
+            const res = await fetch('/api/user/tasks/delete-personal-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ progressId: task.id }),
+            });
 
-                if (res.ok) {
-                    setTasks(tasks.filter((t) => t.id !== task.id));
-                } else {
-                    const error = await res.json();
-                    alert(error.error || 'Failed to delete task');
-                }
-            } catch (error) {
-                console.error('Error deleting task:', error);
-                alert('Error deleting task');
+            if (res.ok) {
+                setTasks(tasks.filter((t) => t.id !== task.id));
             }
+        } catch (error) {
+            console.error('Error deleting task:', error);
+        } finally {
+            setIsDeletingTask(false);
+        }
     };
 
     return (
@@ -642,6 +649,7 @@ export default function Page() {
                 onClose={handleCloseModal}
                 onSave={handleSaveTask}
                 task={editingTask}
+                isSaving={isSavingTask}
             />
         </div>
     );

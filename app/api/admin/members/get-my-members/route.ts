@@ -51,10 +51,12 @@ export async function GET(request: NextRequest) {
         const userData = userDoc.data();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const clubEntry = (userData?.clubIds as any[])?.find((c: any) => c.clubId === clubId);
+        const isAdmin = adminIds.includes(userData?.email);
         return {
           id: userDoc.id,
           ...userData,
           department: clubEntry?.department || null,
+          role: isAdmin ? 'admin' : 'member'
         };
       }
       return null;

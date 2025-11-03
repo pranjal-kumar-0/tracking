@@ -9,6 +9,7 @@ import {
     Plus,
     X,
     Trash,
+    Loader,
 } from "lucide-react";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
 import { useAuth } from "../../../../../providers/AuthProvider";
@@ -37,13 +38,10 @@ interface UserData {
     department: string;
     role: string;
     progress: ProgressTask[];
+    departments: string[];
 }
 
-// --- Sub-Components ---
 
-/**
- * Custom progress bar component, inspired by the reference image.
- */
 const SteppedProgressBar = ({ progress }: { progress: number }) => {
     const segments = 10;
     const filledSegments = Math.round((progress / 100) * segments);
@@ -62,27 +60,25 @@ const SteppedProgressBar = ({ progress }: { progress: number }) => {
     );
 };
 
-/**
- * Edit Due Date Modal Component
- */
 const EditDueDateModal = ({
     isOpen,
     onClose,
     onSubmit,
     currentDueDate,
+    isLoading,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (newDueDate: string) => void;
     currentDueDate: string;
+    isLoading: boolean;
 }) => {
     const [dueDate, setDueDate] = useState(currentDueDate);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (dueDate) {
+        if (dueDate && !isLoading) {
             onSubmit(dueDate);
-            onClose();
         }
     };
 
@@ -96,8 +92,8 @@ const EditDueDateModal = ({
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold ">Edit Due Date</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <h3 className="text-lg font-semibold">Edit Due Date</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
                         <X size={20} />
                     </button>
                 </div>
@@ -110,6 +106,7 @@ const EditDueDateModal = ({
                             onChange={(e) => setDueDate(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -117,13 +114,16 @@ const EditDueDateModal = ({
                             type="button"
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                            disabled={isLoading}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                            disabled={isLoading}
                         >
+                            {isLoading && <Loader size={16} className="animate-spin" />}
                             Update
                         </button>
                     </div>
@@ -202,17 +202,17 @@ const TaskCard = ({
     );
 };
 
-/**
- * Add Task Modal Component
- */
+
 const AddTaskModal = ({
     isOpen,
     onClose,
     onSubmit,
+    isLoading,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (task: { title: string; description: string; dueDate: string }) => void;
+    isLoading: boolean;
 }) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -220,12 +220,8 @@ const AddTaskModal = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (title && description && dueDate) {
+        if (title && description && dueDate && !isLoading) {
             onSubmit({ title, description, dueDate });
-            setTitle("");
-            setDescription("");
-            setDueDate("");
-            onClose();
         }
     };
 
@@ -236,7 +232,7 @@ const AddTaskModal = ({
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">Add New Task</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
                         <X size={20} />
                     </button>
                 </div>
@@ -249,6 +245,7 @@ const AddTaskModal = ({
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="mb-4">
@@ -259,6 +256,7 @@ const AddTaskModal = ({
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             rows={3}
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="mb-4">
@@ -269,6 +267,7 @@ const AddTaskModal = ({
                             onChange={(e) => setDueDate(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -276,13 +275,16 @@ const AddTaskModal = ({
                             type="button"
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                            disabled={isLoading}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                            disabled={isLoading}
                         >
+                            {isLoading && <Loader size={16} className="animate-spin" />}
                             Add Task
                         </button>
                     </div>
@@ -292,17 +294,17 @@ const AddTaskModal = ({
     );
 };
 
-/**
- * Remove Member Confirmation Modal Component
- */
+
 const RemoveMemberModal = ({
     isOpen,
     onClose,
     onConfirm,
+    isLoading,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
+    isLoading: boolean;
 }) => {
     if (!isOpen) return null;
 
@@ -311,7 +313,7 @@ const RemoveMemberModal = ({
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">Remove Member</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
                         <X size={20} />
                     </button>
                 </div>
@@ -322,13 +324,16 @@ const RemoveMemberModal = ({
                     <button
                         onClick={onClose}
                         className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                        disabled={isLoading}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
+                        disabled={isLoading}
                     >
+                        {isLoading && <Loader size={16} className="animate-spin" />}
                         Remove
                     </button>
                 </div>
@@ -337,17 +342,16 @@ const RemoveMemberModal = ({
     );
 };
 
-/**
- * Delete Task Confirmation Modal Component
- */
 const DeleteTaskModal = ({
     isOpen,
     onClose,
     onConfirm,
+    isLoading,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
+    isLoading: boolean;
 }) => {
     if (!isOpen) return null;
 
@@ -356,7 +360,7 @@ const DeleteTaskModal = ({
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">Delete Task</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
                         <X size={20} />
                     </button>
                 </div>
@@ -367,13 +371,16 @@ const DeleteTaskModal = ({
                     <button
                         onClick={onClose}
                         className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                        disabled={isLoading}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
+                        disabled={isLoading}
                     >
+                        {isLoading && <Loader size={16} className="animate-spin" />}
                         Delete
                     </button>
                 </div>
@@ -382,7 +389,6 @@ const DeleteTaskModal = ({
     );
 };
 
-// --- Main Page Component ---
 export default function Page() {
     const params = useParams<{ id: string; userId: string }>();
     const { id, userId } = params;
@@ -397,6 +403,21 @@ export default function Page() {
     const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
+    const [isAddingTask, setIsAddingTask] = useState(false);
+    const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
+    const [isRemovingMember, setIsRemovingMember] = useState(false);
+    const [isDeletingTask, setIsDeletingTask] = useState(false);
+    const [isUpdatingDepartment, setIsUpdatingDepartment] = useState(false);
+
+    const [isEditingDepartment, setIsEditingDepartment] = useState(false);
+    const [selectedDepartment, setSelectedDepartment] = useState("");
+
+    useEffect(() => {
+        if (data) {
+            setSelectedDepartment(data.department);
+        }
+    }, [data]);
 
     const fetchData = async () => {
         try {
@@ -420,7 +441,32 @@ export default function Page() {
         }
     }, [id, userId]);
 
+    const handleUpdateDepartment = async () => {
+        if (!selectedDepartment) return;
+        setIsUpdatingDepartment(true);
+
+        try {
+            const response = await fetch('/api/admin/members/update-department', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, clubId: id, department: selectedDepartment }),
+            });
+
+            if (response.ok) {
+                fetchData();
+                setIsEditingDepartment(false);
+            } else {
+                setError('Failed to update department');
+            }
+        } catch (err) {
+            setError('Error updating department');
+        } finally {
+            setIsUpdatingDepartment(false);
+        }
+    };
+
     const handleAddTask = async (task: { title: string; description: string; dueDate: string }) => {
+        setIsAddingTask(true);
         const createdAt = new Date();
         const dueDateObj = new Date(task.dueDate);
 
@@ -447,13 +493,15 @@ export default function Page() {
             });
 
             if (response.ok) {
-                // Refetch data to update the list
                 fetchData();
+                setIsModalOpen(false);
             } else {
-                alert('Failed to add task');
+                setError('Failed to add task');
             }
         } catch (err) {
-            alert('Error adding task');
+            setError('Error adding task');
+        } finally {
+            setIsAddingTask(false);
         }
     };
 
@@ -464,6 +512,7 @@ export default function Page() {
 
     const handleUpdateDueDate = async (newDueDate: string) => {
         if (!editingTask) return;
+        setIsUpdatingDueDate(true);
 
         const dueDateObj = new Date(newDueDate);
         const payload = {
@@ -483,15 +532,20 @@ export default function Page() {
 
             if (response.ok) {
                 fetchData();
+                setIsEditModalOpen(false);
+                setEditingTask(null);
             } else {
-                alert('Failed to update due date');
+                setError('Failed to update due date');
             }
         } catch (err) {
-            alert('Error updating due date');
+            setError('Error updating due date');
+        } finally {
+            setIsUpdatingDueDate(false);
         }
     };
 
     const handleRemoveMember = async () => {
+        setIsRemovingMember(true);
         const payload = { clubId: id, userId };
 
         try {
@@ -502,13 +556,14 @@ export default function Page() {
             });
 
             if (response.ok) {
-                // Redirect to club members page
                 window.location.href = `/dashboard/c/${id}`;
             } else {
-                alert('Failed to remove member');
+                setError('Failed to remove member');
             }
         } catch (err) {
-            alert('Error removing member');
+            setError('Error removing member');
+        } finally {
+            setIsRemovingMember(false);
         }
     };
 
@@ -519,6 +574,7 @@ export default function Page() {
 
     const handleConfirmDeleteTask = async () => {
         if (!deletingTaskId) return;
+        setIsDeletingTask(true);
 
         try {
             const response = await fetch('/api/admin/tasks/delete-task', {
@@ -529,21 +585,25 @@ export default function Page() {
 
             if (response.ok) {
                 fetchData();
+                setIsDeleteModalOpen(false);
+                setDeletingTaskId(null);
             } else {
-                alert('Failed to delete task');
+                setError('Failed to delete task');
             }
         } catch (err) {
-            alert('Error deleting task');
+            setError('Error deleting task');
         } finally {
-            setIsDeleteModalOpen(false);
-            setDeletingTaskId(null);
+            setIsDeletingTask(false);
         }
     };
 
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-gray-500">Loading...</div>
+                <div className="text-gray-500 flex items-center gap-2">
+                    <Loader size={24} className="animate-spin" />
+                    Loading...
+                </div>
             </div>
         );
     }
@@ -590,7 +650,52 @@ export default function Page() {
                                 <p className="text-gray-600">{data.email}</p>
                                 <div className="flex gap-4 mt-2">
                                     <span className="text-sm text-gray-500">
-                                        Department: <span className="font-medium">{data.department.charAt(0).toUpperCase() + data.department.slice(1)}</span>
+                                        Department: 
+                                        {isEditingDepartment ? (
+                                            <select
+                                                value={selectedDepartment}
+                                                onChange={(e) => setSelectedDepartment(e.target.value)}
+                                                className="ml-1 px-2 py-1 border border-gray-300 rounded"
+                                                disabled={isUpdatingDepartment}
+                                            >
+                                                {data.departments.map((dept) => (
+                                                    <option key={dept} value={dept}>
+                                                        {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <span className="font-medium ml-1">{data.department.charAt(0).toUpperCase() + data.department.slice(1)}</span>
+                                        )}
+                                        {!isEditingDepartment ? (
+                                            <button
+                                                onClick={() => setIsEditingDepartment(true)}
+                                                className="ml-2 text-blue-500 hover:text-blue-700 text-sm"
+                                            >
+                                                Edit
+                                            </button>
+                                        ) : (
+                                            <div className="ml-2 flex gap-2">
+                                                <button
+                                                    onClick={handleUpdateDepartment}
+                                                    className="text-green-500 hover:text-green-700 text-sm flex items-center gap-1"
+                                                    disabled={isUpdatingDepartment}
+                                                >
+                                                    {isUpdatingDepartment && <Loader size={12} className="animate-spin" />}
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setIsEditingDepartment(false);
+                                                        setSelectedDepartment(data.department);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 text-sm"
+                                                    disabled={isUpdatingDepartment}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        )}
                                     </span>
                                     <span className="text-sm text-gray-500">
                                         Role: <span className="font-medium capitalize">{data.role}</span>
@@ -677,6 +782,7 @@ export default function Page() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleAddTask}
+                isLoading={isAddingTask}
             />
 
             {editingTask && (
@@ -685,6 +791,7 @@ export default function Page() {
                     onClose={() => setIsEditModalOpen(false)}
                     onSubmit={handleUpdateDueDate}
                     currentDueDate={editingTask.currentDueDate}
+                    isLoading={isUpdatingDueDate}
                 />
             )}
 
@@ -692,12 +799,14 @@ export default function Page() {
                 isOpen={isRemoveModalOpen}
                 onClose={() => setIsRemoveModalOpen(false)}
                 onConfirm={handleRemoveMember}
+                isLoading={isRemovingMember}
             />
 
             <DeleteTaskModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDeleteTask}
+                isLoading={isDeletingTask}
             />
         </div>
     );

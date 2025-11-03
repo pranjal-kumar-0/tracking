@@ -38,11 +38,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    
     const memberIds = clubData?.memberIds || [];
     if (!memberIds.includes(userId)) {
       await clubDocRef.update({
         memberIds: [...memberIds, userId]
       });
+    }
+
+    if (role === 'admin') {
+      const adminIds = clubData?.adminIds || [];
+      if (!adminIds.includes(userId)) {
+        await clubDocRef.update({
+          adminIds: [...adminIds, email]
+        });
+      }
     }
 
     const userDocRef = dbAdmin.collection('users').doc(userId);

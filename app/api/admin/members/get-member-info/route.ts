@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
       photoURL,
       department,
       role,
-      progress
+      progress,
+      departments: clubData?.departments || []
     }, { status: 200 });
 
   } catch (error) {

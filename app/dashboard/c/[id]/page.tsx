@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../../providers/AuthProvider";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
-import { Briefcase, Settings } from 'lucide-react';
+import { Briefcase, Settings, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -47,6 +47,8 @@ export default function Page() {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'member'>('member');
   const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const fetchMembers = async (clubId: string) => {
     try {
@@ -81,6 +83,7 @@ export default function Page() {
 
   const handleAccept = async () => {
     if (!selectedApplicant) return;
+    setIsAccepting(true);
     try {
       const res = await fetch('/api/admin/members/accept', {
         method: 'POST',
@@ -92,22 +95,23 @@ export default function Page() {
         })
       });
       if (res.ok) {
-        alert('Applicant accepted');
         setModalOpen(false);
         fetchApplicants(id);
         fetchMembers(id);
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to accept');
+        setError(error.error || 'Failed to accept');
       }
     } catch (error) {
       console.error('Error accepting:', error);
-      alert('Error accepting');
+      setError('Error accepting');
+    } finally {
+      setIsAccepting(false);
     }
   };
 
   const handleReject = async (applicantId: string) => {
-    if (!confirm('Are you sure you want to reject this applicant?')) return;
+    setIsRejecting(true);
     try {
       const res = await fetch('/api/admin/members/reject', {
         method: 'POST',
@@ -115,15 +119,16 @@ export default function Page() {
         body: JSON.stringify({ applicantId })
       });
       if (res.ok) {
-        alert('Applicant rejected');
         fetchApplicants(id);
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to reject');
+        setError(error.error || 'Failed to reject');
       }
     } catch (error) {
       console.error('Error rejecting:', error);
-      alert('Error rejecting');
+      setError('Error rejecting');
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -265,8 +270,10 @@ export default function Page() {
                       </button>
                       <button
                         onClick={() => handleReject(app.id)}
-                        className="flex-1 px-3 py-2 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                        className="flex-1 px-3 py-2 bg-red-600 text-white text-xs rounded hover:bg-red-700 flex items-center justify-center gap-1"
+                        disabled={isRejecting}
                       >
+                        {isRejecting && <Loader size={12} className="animate-spin" />}
                         Reject
                       </button>
                     </div>
@@ -292,25 +299,19 @@ export default function Page() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Department</label>
-                  <input
-                    type="text"
-                    value={selectedDepartment.charAt(0).toLocaleUpperCase() + selectedDepartment.slice(1)}
-                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                    className="w-full px-3 py-2 border rounded"
-                  />
-                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleAccept}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-1"
+                    disabled={isAccepting}
                   >
+                    {isAccepting && <Loader size={12} className="animate-spin" />}
                     Accept
                   </button>
                   <button
                     onClick={() => setModalOpen(false)}
                     className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                    disabled={isAccepting}
                   >
                     Cancel
                   </button>
