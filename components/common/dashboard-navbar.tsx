@@ -9,6 +9,8 @@ import { auth } from "../../firebase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { User } from "firebase/auth";
+import { FaChessPawn, FaChessKnight, FaChessRook } from "react-icons/fa6";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface DashboardNavbarProps {
   user: User | null;
@@ -17,7 +19,14 @@ interface DashboardNavbarProps {
 const DashboardNavbar: React.FC<DashboardNavbarProps> = ({ user }) => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
+  const { profile, loading } = useUserProfile();
+  
+  const rating = profile?.rating || "Pawn";
+  const ratingIcon = rating === "Rook" ? <FaChessRook className="text-amber-500" /> : rating === "Knight" ? <FaChessKnight className="text-[#b023a7]" /> : <FaChessPawn className="text-slate-500" />;
+  const ratingText = rating === "Rook" ? "text-amber-700" : rating === "Knight" ? "text-[#b023a7]" : "text-slate-600";
+  const isKnight = rating === "Knight";
+  const isPawn = rating === "Pawn";
+  
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -34,11 +43,18 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({ user }) => {
           Club<span className="text-indigo-600">Sync</span>
         </h1>
       </Link>
-      <div className="relative">
+      <div className="relative" >
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className={
+            isKnight
+              ? "flex items-center gap-2 rounded-full bg-linear-to-r from-[#eec0a8] via-pink-100 to-[#dc84d5] px-3 py-2 text-sm font-semibold text-[#7d1f73] shadow-sm transition"
+              : isPawn
+              ? "flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm transition"
+              : "flex items-center gap-2 rounded-full bg-linear-to-r from-amber-200 via-yellow-100 to-amber-300 px-3 py-2 text-sm font-semibold text-amber-900 shadow-sm transition"
+          }
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
           <Image
@@ -48,7 +64,13 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({ user }) => {
             height={24}
             className="w-6 h-6 rounded-full"
           />
-          <span>{user?.displayName}</span>
+          <span className="flex items-center gap-1">
+            {user?.displayName}
+            <span className={`flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold shadow-inner ${ratingText}`}>
+              {ratingIcon}
+              {rating}
+            </span>
+          </span>
         </motion.button>
         <AnimatePresence>
           {isDropdownOpen && (
@@ -56,6 +78,7 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({ user }) => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
+              onMouseLeave={() => setIsDropdownOpen(false)}
               className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[150px]"
             >
               <button
