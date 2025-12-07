@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-// @ts-expect-error Ignore it pls
+
 import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
 
@@ -30,6 +30,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
+        style={{ overflowX: "auto", overflowY: "auto" }}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>

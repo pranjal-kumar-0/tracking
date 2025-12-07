@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
         name: decodedToken.name,
         photoURL: decodedToken.picture,
         role: 'member',
+        rating: 'Pawn',
         clubIds: [],
         createdAt: new Date(),
       };
