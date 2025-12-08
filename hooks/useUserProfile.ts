@@ -13,7 +13,7 @@ export interface UserProfile {
   clubIds: { clubId: string; department: string }[];
   photoURL?: string;
   createdAt: any;
-  rating?: "Pawn" | "Knight" | "Rook";
+  rating?: "Pawn" | "Bishop" | "Knight" | "Rook";
   points?: number;
   lastDailyClaimAt?: any;
 }
