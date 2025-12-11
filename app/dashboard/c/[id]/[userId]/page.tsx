@@ -15,6 +15,68 @@ import DashboardNavbar from "@/components/common/dashboard-navbar";
 import { useAuth } from "../../../../../providers/AuthProvider";
 import Image from "next/image";
 
+const QuestSubmissions = ({ clubId, userId }: { clubId: string; userId: string }) => {
+    const [submissions, setSubmissions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchSubmissions = () => {
+        fetch("/api/admin/submissions/get-submissions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clubId, userId }),
+        })
+            .then((r) => r.json())
+            .then((d) => { setSubmissions(d.submissions || []); setLoading(false); })
+            .catch(() => setLoading(false));
+    };
+
+    useEffect(() => { fetchSubmissions(); }, [clubId, userId]);
+
+    const handleReview = async (submissionId: string, action: "approved" | "rejected") => {
+        try {
+            const res = await fetch("/api/admin/submissions/review", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ submissionId, action, clubId }),
+            });
+            if (res.ok) fetchSubmissions();
+            else alert("Failed to review");
+        } catch { alert("Error reviewing"); }
+    };
+
+    if (loading) return <p className="text-gray-500">Loading submissions...</p>;
+    if (submissions.length === 0) return <p className="text-gray-500">No submissions yet.</p>;
+
+    return (
+        <div className="space-y-3">
+            {submissions.map((s: any) => (
+                <div key={s.id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-gray-800">{s.questTitle}</h3>
+                        <span className={`text-xs px-2 py-1 rounded-full ${s.status === "pending" ? "bg-yellow-100 text-yellow-700" : s.status === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                            {s.status}
+                        </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">Points: {s.points}</p>
+                    <a href={s.repoLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline block mb-2">View Repo</a>
+                    <div className="flex gap-2">
+                        {s.status !== "approved" && (
+                            <button onClick={() => handleReview(s.id, "approved")} className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                                Approve
+                            </button>
+                        )}
+                        {s.status !== "rejected" && (
+                            <button onClick={() => handleReview(s.id, "rejected")} className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                                Reject
+                            </button>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 interface ProgressTask {
     progressId: string;
     createdAt: {
@@ -774,6 +836,12 @@ export default function Page() {
                         </div>
                     </section>
                 </main>
+
+                {/* Quest Submissions */}
+                <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mt-6">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Quest Submissions</h2>
+                    <QuestSubmissions clubId={id as string} userId={userId as string} />
+                </section>
             </div>
 
             <AddTaskModal

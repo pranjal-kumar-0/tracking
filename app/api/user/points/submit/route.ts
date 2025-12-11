@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse & Validate Data
     const body = await request.json();
-    const { questId, questTitle, points, repoLink, track } = body;
+    const { questId, questTitle, points, repoLink, track, clubId } = body;
 
-    if (!questId || !repoLink) {
+    if (!questId || !repoLink || !clubId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     //3. Store Submission in Firestore
     const submissionData = {
       userId: uid,
+      clubId,
       questId,
       questTitle,
       track: track || "general",

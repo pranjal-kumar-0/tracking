@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
         } as const;
       }
 
+      const newPoints = (data.points ?? 0) + DAILY_POINTS;
+
       tx.update(userRef, {
         points: admin.firestore.FieldValue.increment(DAILY_POINTS),
         lastDailyClaimAt: now,
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
 
       return {
         claimed: true,
-        points: (data.points ?? 0) + DAILY_POINTS,
+        points: newPoints,
         last: now,
       } as const;
     });

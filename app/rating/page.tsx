@@ -1,13 +1,14 @@
 "use client";
 import { useAuth } from "@/providers/AuthProvider";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { FaChessPawn, FaChessKnight, FaChessRook, FaCrown } from "react-icons/fa6";
+import { FaChessPawn, FaChessBishop, FaChessKnight, FaChessRook, FaCrown } from "react-icons/fa6";
 import { motion } from "framer-motion";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
 
 const BADGES = [
-  { label: "Pawn", band: "0-1199", icon: <FaChessPawn className="text-slate-600" />, color: "bg-slate-50", ring: "ring-slate-900/20", txt: "text-slate-900", note: "Opening piece, 1 point", sub: "Basic moves, foundation" },
-  { label: "Knight", band: "1200-1999", icon: <FaChessKnight className="text-purple-600" />, color: "bg-purple-50", ring: "ring-purple-500/20", txt: "text-purple-900", note: "Tactical piece, 3 points", sub: "Strategic thinking" },
+  { label: "Pawn", band: "0-799", icon: <FaChessPawn className="text-slate-600" />, color: "bg-slate-50", ring: "ring-slate-900/20", txt: "text-slate-900", note: "Opening piece, 1 point", sub: "Basic moves, foundation" },
+  { label: "Bishop", band: "800-1199", icon: <FaChessBishop className="text-violet-600" />, color: "bg-violet-50", ring: "ring-violet-500/20", txt: "text-violet-900", note: "Diagonal piece, 3 points", sub: "Strategic positioning" },
+  { label: "Knight", band: "1200-1999", icon: <FaChessKnight className="text-pink-600" />, color: "bg-pink-50", ring: "ring-pink-500/20", txt: "text-pink-900", note: "Tactical piece, 3 points", sub: "Advanced tactics" },
   { label: "Rook", band: "2000+", icon: <FaChessRook className="text-amber-600" />, color: "bg-amber-50", ring: "ring-amber-500/20", txt: "text-amber-900", note: "Anchor piece, 5 points", sub: "Masterful control" }
 ];
 
@@ -26,10 +27,11 @@ export default function RatingPage() {
   const role = profile?.role;
   const current = BADGES.find(b => b.label === rating) || BADGES[0];
   const isMax = rating === "Rook";
+  const nextRank = rating === "Pawn" ? "Bishop" : rating === "Bishop" ? "Knight" : "Rook";
   
   // Logic helpers
   const backPath = role === "super_admin" ? "/dashboard/sa" : role === "admin" ? "/dashboard/c" : "/dashboard/m";
-  const nextGradient = rating === "Pawn" ? "bg-linear-to-r from-[#eec0a8] via-pink-100 to-[#dc84d5] text-[#7d1f73]" : "bg-linear-to-r from-amber-200 via-yellow-100 to-amber-300 text-amber-900";
+  const nextGradient = rating === "Pawn" ? "bg-gradient-to-r from-violet-200 via-purple-100 to-violet-300 text-violet-900" : rating === "Bishop" ? "bg-gradient-to-r from-pink-200 via-rose-100 to-pink-300 text-pink-900" : "bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 text-amber-900";
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 text-slate-900">
@@ -51,7 +53,7 @@ export default function RatingPage() {
           <div className="text-center sm:text-right">
             {!isMax && (
               <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-medium text-sm mb-1 ${nextGradient}`}>
-                <FaCrown /> Progress to {rating === "Pawn" ? "Knight" : "Rook"}
+                <FaCrown /> Progress to {nextRank}
               </div>
             )}
             <p className="text-slate-400 text-xs">{!isMax ? "Complete tasks to rank up" : "Max rank achieved"}</p>
@@ -59,7 +61,7 @@ export default function RatingPage() {
         </motion.div>
 
         {/* TIERS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {BADGES.map((b, i) => (
             <motion.div key={b.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               className={`${b.color} rounded-2xl border ${b.label === rating ? `border-slate-900 shadow-lg ring-2 ${b.ring}` : 'border-slate-200'} p-5 hover:shadow-md transition-all`}>
