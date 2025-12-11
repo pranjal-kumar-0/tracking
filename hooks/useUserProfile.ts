@@ -13,9 +13,17 @@ export interface UserProfile {
   clubIds: { clubId: string; department: string }[];
   photoURL?: string;
   createdAt: any;
-  rating?: "Pawn" | "Bishop" | "Knight" | "Rook";
+  rating: "Pawn" | "Bishop" | "Knight" | "Rook"; // Computed field
   points?: number;
   lastDailyClaimAt?: any;
+}
+
+// Calculate rating based on points
+export function getRating(points: number = 0): "Pawn" | "Bishop" | "Knight" | "Rook" {
+  if (points >= 2000) return "Rook";
+  if (points >= 1200) return "Knight";
+  if (points >= 800) return "Bishop";
+  return "Pawn";
 }
 
 export function useUserProfile() {
@@ -43,7 +51,8 @@ export function useUserProfile() {
       (docSnap) => {
         if (docSnap.exists()) {
           // Success: We found their profile
-          setProfile(docSnap.data() as UserProfile);
+          const data = docSnap.data();
+          setProfile({ ...data, rating: getRating(data.points || 0) } as UserProfile);
         } else {
           // Edge Case: They logged in (Auth), but have no Firestore doc yet
           console.warn("User logged in, but no profile found in 'users' collection.");

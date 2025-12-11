@@ -120,9 +120,11 @@ export default function RatingPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const clubId = profile?.clubIds?.[0]?.clubId || "";
+      if (!clubId) { alert("No club found"); setSubmitting(false); return; }
       const res = await fetch("/api/user/points/submit", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questId: modal.quest?.id, questTitle: modal.quest?.title, points: modal.quest?.pts, track: modal.quest?.type, repoLink })
+        body: JSON.stringify({ questId: modal.quest?.id, questTitle: modal.quest?.title, points: modal.quest?.pts, track: modal.quest?.type, repoLink, clubId })
       });
       if (!res.ok) throw new Error((await res.json()).error);
       setSubmissions(prev => ({ ...prev, [modal.quest.id]: 'pending' })); 

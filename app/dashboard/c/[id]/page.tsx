@@ -7,6 +7,56 @@ import { Briefcase, Settings, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+const MemberCardWithCount = ({ member, clubId }: { member: User; clubId: string }) => {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    fetch("/api/admin/submissions/get-submissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clubId, userId: member.id }),
+    })
+      .then((r) => r.json())
+      .then((d) => setCount(d.submissions?.filter((s: any) => s.status === "pending").length || 0))
+      .catch(() => {});
+  }, [clubId, member.id]);
+
+  const pts = member.points || 0;
+  const rating = pts >= 2000 ? "Rook" : pts >= 1200 ? "Knight" : pts >= 800 ? "Bishop" : "Pawn";
+  const ratingColor = rating === "Rook" ? "bg-amber-100 text-amber-700" : rating === "Knight" ? "bg-pink-100 text-pink-700" : rating === "Bishop" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-700";
+
+  return (
+    <Link href={`/dashboard/c/${clubId}/${member.id}`}>
+      <div className="relative bg-linear-to-br from-gray-50 to-gray-100 p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+        {count > 0 && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded-full">
+            {count}
+          </span>
+        )}
+        <div className="flex items-center gap-3 mb-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">{member.name || 'No Name'}</p>
+            <p className="text-xs text-gray-600">{member.email}</p>
+          </div>
+        </div>
+        <div className="space-y-1 text-xs text-gray-600">
+          <p><span className="font-medium">Role:</span> {member.role || 'Member'}</p>
+          <p><span className="font-medium">Joined:</span> {(() => {
+            const date = member.joinedAt || member.createdAt;
+            if (date && date._seconds) {
+              return new Date(date._seconds * 1000).toLocaleDateString('en-GB');
+            }
+            return 'Unknown';
+          })()}</p>
+        </div>
+        <span className={`absolute bottom-2 right-2 px-2 py-0.5 text-[10px] font-bold rounded-full ${ratingColor}`}>
+          {rating}
+        </span>
+      </div>
+    </Link>
+  );
+};
+
 interface User {
   createdAt: { _seconds: number; _nanoseconds: number; } | undefined;
   id: string;
@@ -15,6 +65,7 @@ interface User {
   clubIds?: string[];
   name?: string;
   department?: string;
+  points?: number;
   joinedAt?: {
     _seconds: number;
     _nanoseconds: number;
@@ -201,26 +252,7 @@ export default function Page() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {deptMembers.map(mem => (
-                    <Link key={mem.id} href={`/dashboard/c/${id}/${mem.id}`}>
-                      <div className="bg-linear-to-br from-gray-50 to-gray-100 p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-800">{mem.name || 'No Name'}</p>
-                            <p className="text-xs text-gray-600">{mem.email}</p>
-                          </div>
-                        </div>
-                        <div className="space-y-1 text-xs text-gray-600">
-                          <p><span className="font-medium">Role:</span> {mem.role || 'Member'}</p>
-                          <p><span className="font-medium">Joined:</span> {(() => {
-                            const date = mem.joinedAt || mem.createdAt;
-                            if (date && date._seconds) {
-                              return new Date(date._seconds * 1000).toLocaleDateString('en-GB');
-                            }
-                            return 'Unknown';
-                          })()}</p>
-                        </div>
-                      </div>
-                    </Link>
+                    <MemberCardWithCount key={mem.id} member={mem} clubId={id} />
                   ))}
                 </div>
               </div>
