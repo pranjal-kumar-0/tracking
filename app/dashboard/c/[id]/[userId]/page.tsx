@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -5,15 +6,16 @@ import { useParams } from "next/navigation";
 import {
     ClipboardCheck,
     User,
-    CalendarDays,
-    Plus,
-    X,
     Trash,
-    Loader,
+    ArrowLeft,
+    CheckCircle2,
+    XCircle,
+    Clock,
 } from "lucide-react";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
 import { useAuth } from "../../../../../providers/AuthProvider";
 import Image from "next/image";
+import Link from "next/link";
 
 const QuestSubmissions = ({ clubId, userId }: { clubId: string; userId: string }) => {
     const [submissions, setSubmissions] = useState<any[]>([]);
@@ -26,11 +28,16 @@ const QuestSubmissions = ({ clubId, userId }: { clubId: string; userId: string }
             body: JSON.stringify({ clubId, userId }),
         })
             .then((r) => r.json())
-            .then((d) => { setSubmissions(d.submissions || []); setLoading(false); })
+            .then((d) => {
+                setSubmissions(d.submissions || []);
+                setLoading(false);
+            })
             .catch(() => setLoading(false));
     };
 
-    useEffect(() => { fetchSubmissions(); }, [clubId, userId]);
+    useEffect(() => {
+        fetchSubmissions();
+    }, [clubId, userId]);
 
     const handleReview = async (submissionId: string, action: "approved" | "rejected") => {
         try {
@@ -41,32 +48,67 @@ const QuestSubmissions = ({ clubId, userId }: { clubId: string; userId: string }
             });
             if (res.ok) fetchSubmissions();
             else alert("Failed to review");
-        } catch { alert("Error reviewing"); }
+        } catch {
+            alert("Error reviewing");
+        }
     };
 
-    if (loading) return <p className="text-gray-500">Loading submissions...</p>;
-    if (submissions.length === 0) return <p className="text-gray-500">No submissions yet.</p>;
+    if (loading) return <div className="font-black uppercase italic p-4">Scanning...</div>;
+    if (submissions.length === 0)
+        return (
+            <div className="border-4 border-black border-dashed p-8 text-center font-bold uppercase text-slate-400">
+                No Submissions
+            </div>
+        );
 
     return (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {submissions.map((s: any) => (
-                <div key={s.id} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-800">{s.questTitle}</h3>
-                        <span className={`text-xs px-2 py-1 rounded-full ${s.status === "pending" ? "bg-yellow-100 text-yellow-700" : s.status === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                            {s.status}
-                        </span>
+                <div
+                    key={s.id}
+                    className="border-4 border-black p-4 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between"
+                >
+                    <div className="min-w-0">
+                        <div className="flex justify-between items-start gap-2 mb-4">
+                            <h3 className="font-black uppercase text-sm leading-tight break-words">
+                                {s.questTitle}
+                            </h3>
+                            <div
+                                className={`border-2 border-black px-2 py-1 font-black text-[9px] uppercase whitespace-nowrap ${s.status === "pending"
+                                        ? "bg-amber-400"
+                                        : s.status === "approved"
+                                            ? "bg-emerald-400"
+                                            : "bg-rose-400"
+                                    }`}
+                            >
+                                {s.status}
+                            </div>
+                        </div>
+                        <p className="font-bold text-[10px] uppercase mb-1">Points: {s.points}</p>
+                        <a
+                            href={s.repoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block bg-black text-white px-3 py-1 text-[9px] font-black uppercase mb-4 hover:bg-indigo-600 transition-colors"
+                        >
+                            View Repo
+                        </a>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">Points: {s.points}</p>
-                    <a href={s.repoLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline block mb-2">View Repo</a>
+
                     <div className="flex gap-2">
                         {s.status !== "approved" && (
-                            <button onClick={() => handleReview(s.id, "approved")} className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                            <button
+                                onClick={() => handleReview(s.id, "approved")}
+                                className="flex-1 py-2 bg-emerald-400 border-2 border-black font-black uppercase text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all cursor-pointer"
+                            >
                                 Approve
                             </button>
                         )}
                         {s.status !== "rejected" && (
-                            <button onClick={() => handleReview(s.id, "rejected")} className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                            <button
+                                onClick={() => handleReview(s.id, "rejected")}
+                                className="flex-1 py-2 bg-rose-400 border-2 border-black font-black uppercase text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all cursor-pointer"
+                            >
                                 Reject
                             </button>
                         )}
@@ -77,372 +119,96 @@ const QuestSubmissions = ({ clubId, userId }: { clubId: string; userId: string }
     );
 };
 
-interface ProgressTask {
-    progressId: string;
-    createdAt: {
-        _seconds: number;
-        _nanoseconds: number;
-    };
-    description: string;
-    dueDate: {
-        _seconds: number;
-        _nanoseconds: number;
-    };
-    givenBy: string;
-    status: number;
-    title: string;
-}
-
-interface UserData {
-    email: string;
-    name: string;
-    photoURL: string | null;
-    department: string;
-    role: string;
-    progress: ProgressTask[];
-    departments: string[];
-}
-
-
 const SteppedProgressBar = ({ progress }: { progress: number }) => {
     const segments = 10;
     const filledSegments = Math.round((progress / 100) * segments);
-    const color = progress === 100 ? "bg-green-500" : "bg-blue-500";
-
     return (
-        <div className="flex w-full gap-1 h-3">
+        <div className="flex w-full gap-1 h-4 border-2 border-black p-0.5 bg-black">
             {Array.from({ length: segments }).map((_, i) => (
                 <div
                     key={i}
-                    className={`flex-1 h-full rounded ${i < filledSegments ? color : "bg-gray-200"
-                        } transition-all duration-300`}
+                    className={`flex-1 h-full ${i < filledSegments ? (progress === 100 ? "bg-emerald-400" : "bg-indigo-400") : "bg-white"
+                        }`}
                 />
             ))}
         </div>
     );
 };
 
-const EditDueDateModal = ({
+const ModalWrapper = ({
+    children,
     isOpen,
     onClose,
-    onSubmit,
-    currentDueDate,
-    isLoading,
 }: {
+    children: React.ReactNode;
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (newDueDate: string) => void;
-    currentDueDate: string;
-    isLoading: boolean;
 }) => {
-    const [dueDate, setDueDate] = useState(currentDueDate);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (dueDate && !isLoading) {
-            onSubmit(dueDate);
-        }
-    };
-
-    useEffect(() => {
-        setDueDate(currentDueDate);
-    }, [currentDueDate]);
-
     if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Edit Due Date</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                        <input
-                            type="date"
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="flex flex-col sm:flex-row justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                            disabled={isLoading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
-                            disabled={isLoading}
-                        >
-                            {isLoading && <Loader size={16} className="animate-spin" />}
-                            Update
-                        </button>
-                    </div>
-                </form>
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="bg-white border-4 md:border-8 border-black p-6 md:p-8 w-full max-w-md relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+                {children}
             </div>
         </div>
     );
 };
-
 
 const TaskCard = ({
     task,
     onEditDueDate,
     onDeleteTask,
 }: {
-    task: ProgressTask;
-    onEditDueDate: (progressId: string, currentDueDate: string) => void;
-    onDeleteTask: (progressId: string) => void;
+    task: any;
+    onEditDueDate: (id: string, date: string) => void;
+    onDeleteTask: (id: string) => void;
 }) => {
     const isOverdue = new Date(task.dueDate._seconds * 1000) < new Date() && task.status < 100;
-
     return (
-        <div className="bg-white p-4 sm:p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">{task.title}</h3>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => onEditDueDate(task.progressId, new Date(task.dueDate._seconds * 1000).toISOString().split('T')[0])}
-                        className="text-blue-500 hover:text-blue-700 text-sm hover:cursor-pointer"
-                    >
-                        Edit Due Date
-                    </button>
-                    <button
-                        onClick={() => onDeleteTask(task.progressId)}
-                        className="text-red-500 hover:text-red-700 text-sm hover:cursor-pointer"
-                    >
-                        <Trash size={16} />
-                    </button>
-                </div>
+        <div className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex justify-between items-start mb-4 gap-2">
+                <h3 className="text-lg font-black uppercase italic tracking-tighter break-words">
+                    {task.title}
+                </h3>
+                <button
+                    onClick={() => onDeleteTask(task.progressId)}
+                    className="text-rose-600 shrink-0 cursor-pointer"
+                >
+                    <Trash size={18} />
+                </button>
             </div>
-            <p className="text-sm text-gray-600 mb-4">{task.description}</p>
-
-            <div className="mb-4">
-                <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-medium text-gray-500">Progress</span>
-                    <span
-                        className={`text-sm font-semibold ${task.status === 100 ? "text-green-600" : "text-blue-600"
-                            }`}
-                    >
-                        {task.status}%
+            <p className="font-bold text-xs mb-6 text-slate-600 uppercase break-words">
+                {task.description}
+            </p>
+            <div className="mb-6">
+                <div className="flex justify-between items-end mb-2">
+                    <span className="font-black uppercase text-[9px] tracking-widest text-slate-400">
+                        Progress
                     </span>
+                    <span className="font-black text-sm">{task.status}%</span>
                 </div>
                 <SteppedProgressBar progress={task.status} />
             </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t-2 border-black pt-4">
                 <div
-                    className={`flex items-center gap-1.5 ${isOverdue ? "text-red-600 font-medium" : "text-gray-500"
-                        } mb-2 sm:mb-0`}
+                    className={`flex items-center gap-2 font-black uppercase text-[10px] ${isOverdue ? "text-rose-600" : "text-black"
+                        }`}
                 >
-                    <CalendarDays size={16} />
-                    <span>
-                        {isOverdue ? "Overdue" : "Due"}:{" "}
-                        {new Date(task.dueDate._seconds * 1000).toLocaleDateString('en-GB')}
-                    </span>
+                    <Clock size={14} />
+                    <span>{new Date(task.dueDate._seconds * 1000).toLocaleDateString("en-GB")}</span>
                 </div>
-                {task.status === 100 && (
-                    <span className="text-green-600 font-medium text-xs px-2 py-0.5 bg-green-50 rounded-full">
-                        Completed
-                    </span>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-const AddTaskModal = ({
-    isOpen,
-    onClose,
-    onSubmit,
-    isLoading,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (task: { title: string; description: string; dueDate: string }) => void;
-    isLoading: boolean;
-}) => {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [dueDate, setDueDate] = useState("");
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (title && description && dueDate && !isLoading) {
-            onSubmit({ title, description, dueDate });
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Add New Task</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            rows={3}
-                            required
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                        <input
-                            type="date"
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="flex flex-col sm:flex-row justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                            disabled={isLoading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
-                            disabled={isLoading}
-                        >
-                            {isLoading && <Loader size={16} className="animate-spin" />}
-                            Add Task
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-const RemoveMemberModal = ({
-    isOpen,
-    onClose,
-    onConfirm,
-    isLoading,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-    isLoading: boolean;
-}) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Remove Member</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <p className="text-gray-700 mb-6">
-                    Are you sure you want to remove this member from the club? This action cannot be undone.
-                </p>
-                <div className="flex flex-col sm:flex-row justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                        disabled={isLoading}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
-                        disabled={isLoading}
-                    >
-                        {isLoading && <Loader size={16} className="animate-spin" />}
-                        Remove
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const DeleteTaskModal = ({
-    isOpen,
-    onClose,
-    onConfirm,
-    isLoading,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-    isLoading: boolean;
-}) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Delete Task</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700" disabled={isLoading}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <p className="text-gray-700 mb-6">
-                    Are you sure you want to delete this task? This action cannot be undone.
-                </p>
-                <div className="flex flex-col sm:flex-row justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                        disabled={isLoading}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
-                        disabled={isLoading}
-                    >
-                        {isLoading && <Loader size={16} className="animate-spin" />}
-                        Delete
-                    </button>
-                </div>
+                <button
+                    onClick={() =>
+                        onEditDueDate(
+                            task.progressId,
+                            new Date(task.dueDate._seconds * 1000).toISOString().split("T")[0]
+                        )
+                    }
+                    className="text-[10px] font-black uppercase underline decoration-2 cursor-pointer"
+                >
+                    Reschedule
+                </button>
             </div>
         </div>
     );
@@ -453,17 +219,18 @@ export default function Page() {
     const { id, userId } = params;
     const { user } = useAuth();
 
-    const [data, setData] = useState<UserData | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [data, setData] = useState<any | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState<{ progressId: string; currentDueDate: string } | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
-    // Loading states for actions
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
     const [isRemovingMember, setIsRemovingMember] = useState(false);
@@ -472,12 +239,8 @@ export default function Page() {
 
     const [isEditingDepartment, setIsEditingDepartment] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState("");
-
-    useEffect(() => {
-        if (data) {
-            setSelectedDepartment(data.department);
-        }
-    }, [data]);
+    const [newTask, setNewTask] = useState({ title: "", description: "", dueDate: "" });
+    const [newDueDate, setNewDueDate] = useState("");
 
     const fetchData = async () => {
         try {
@@ -485,120 +248,87 @@ export default function Page() {
             if (response.ok) {
                 const result = await response.json();
                 setData(result);
+                setSelectedDepartment(result.department);
             } else {
-                setError(`Error: ${response.status} ${response.statusText}`);
+                setError(`Error: ${response.status}`);
             }
         } catch (err) {
-            setError(`Fetch error: ${err}`);
+            setError("Fetch error");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (id && userId) {
-            fetchData();
-        }
+        if (id && userId) fetchData();
     }, [id, userId]);
 
     const handleUpdateDepartment = async () => {
-        if (!selectedDepartment) return;
         setIsUpdatingDepartment(true);
-
         try {
-            const response = await fetch('/api/admin/members/update-department', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/admin/members/update-department", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ userId, clubId: id, department: selectedDepartment }),
             });
-
-            if (response.ok) {
+            if (res.ok) {
                 fetchData();
                 setIsEditingDepartment(false);
-            } else {
-                setError('Failed to update department');
             }
-        } catch (err) {
-            setError('Error updating department');
         } finally {
             setIsUpdatingDepartment(false);
         }
     };
 
-    const handleAddTask = async (task: { title: string; description: string; dueDate: string }) => {
+    const handleAddTask = async (e: React.FormEvent) => {
+        e.preventDefault();
         setIsAddingTask(true);
-        const createdAt = new Date();
-        const dueDateObj = new Date(task.dueDate);
-
-        const payload = {
-            clubId: id,
-            userId,
-            createdAt: {
-                _seconds: Math.floor(createdAt.getTime() / 1000),
-                _nanoseconds: 0,
-            },
-            description: task.description,
-            dueDate: {
-                _seconds: Math.floor(dueDateObj.getTime() / 1000),
-                _nanoseconds: 0,
-            },
-            title: task.title,
-        };
-
         try {
-            const response = await fetch('/api/admin/tasks/give-task', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+            const res = await fetch("/api/admin/tasks/give-task", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    clubId: id,
+                    userId,
+                    createdAt: { _seconds: Math.floor(Date.now() / 1000), _nanoseconds: 0 },
+                    description: newTask.description,
+                    dueDate: {
+                        _seconds: Math.floor(new Date(newTask.dueDate).getTime() / 1000),
+                        _nanoseconds: 0,
+                    },
+                    title: newTask.title,
+                }),
             });
-
-            if (response.ok) {
+            if (res.ok) {
                 fetchData();
                 setIsModalOpen(false);
-            } else {
-                setError('Failed to add task');
+                setNewTask({ title: "", description: "", dueDate: "" });
             }
-        } catch (err) {
-            setError('Error adding task');
         } finally {
             setIsAddingTask(false);
         }
     };
 
-    const handleEditDueDate = (progressId: string, currentDueDate: string) => {
-        setEditingTask({ progressId, currentDueDate });
-        setIsEditModalOpen(true);
-    };
-
-    const handleUpdateDueDate = async (newDueDate: string) => {
+    const handleUpdateDueDate = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!editingTask) return;
         setIsUpdatingDueDate(true);
-
-        const dueDateObj = new Date(newDueDate);
-        const payload = {
-            progressId: editingTask.progressId,
-            newDueDate: {
-                _seconds: Math.floor(dueDateObj.getTime() / 1000),
-                _nanoseconds: 0,
-            },
-        };
-
         try {
-            const response = await fetch('/api/admin/tasks/update-duedate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+            const res = await fetch("/api/admin/tasks/update-duedate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    progressId: editingTask.progressId,
+                    newDueDate: {
+                        _seconds: Math.floor(new Date(newDueDate).getTime() / 1000),
+                        _nanoseconds: 0,
+                    },
+                }),
             });
-
-            if (response.ok) {
+            if (res.ok) {
                 fetchData();
                 setIsEditModalOpen(false);
-                setEditingTask(null);
-            } else {
-                setError('Failed to update due date');
             }
-        } catch (err) {
-            setError('Error updating due date');
         } finally {
             setIsUpdatingDueDate(false);
         }
@@ -606,274 +336,318 @@ export default function Page() {
 
     const handleRemoveMember = async () => {
         setIsRemovingMember(true);
-        const payload = { clubId: id, userId };
-
         try {
-            const response = await fetch('/api/admin/members/remove-member', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+            const res = await fetch("/api/admin/members/remove-member", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ clubId: id, userId }),
             });
-
-            if (response.ok) {
-                window.location.href = `/dashboard/c/${id}`;
-            } else {
-                setError('Failed to remove member');
-            }
-        } catch (err) {
-            setError('Error removing member');
+            if (res.ok) window.location.href = `/dashboard/c/${id}`;
         } finally {
             setIsRemovingMember(false);
         }
     };
 
-    const handleDeleteTask = (progressId: string) => {
-        setDeletingTaskId(progressId);
-        setIsDeleteModalOpen(true);
-    };
-
     const handleConfirmDeleteTask = async () => {
         if (!deletingTaskId) return;
         setIsDeletingTask(true);
-
         try {
-            const response = await fetch('/api/admin/tasks/delete-task', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/admin/tasks/delete-task", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ progressId: deletingTaskId }),
             });
-
-            if (response.ok) {
+            if (res.ok) {
                 fetchData();
                 setIsDeleteModalOpen(false);
-                setDeletingTaskId(null);
-            } else {
-                setError('Failed to delete task');
             }
-        } catch (err) {
-            setError('Error deleting task');
         } finally {
             setIsDeletingTask(false);
         }
     };
 
-    if (loading) {
+    if (loading)
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-gray-500 flex items-center gap-2">
-                    <Loader size={24} className="animate-spin" />
-                    Loading...
+            <div className="min-h-screen bg-[#FDFCFB] flex items-center justify-center p-6 text-center">
+                <div className="border-4 border-black p-6 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] font-black uppercase italic">
+                    Fetching Member Stats...
                 </div>
             </div>
         );
-    }
 
-    if (error) {
+    if (error || !data)
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-red-500">{error}</div>
+            <div className="p-10 font-black uppercase text-rose-600 bg-[#FDFCFB] min-h-screen">
+                {error || "Member not found"}
             </div>
         );
-    }
-
-    if (!data) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-gray-500">No data available</div>
-            </div>
-        );
-    }
 
     return (
-        <div className="min-h-screen bg-slate-50 relative">
+        <div className="min-h-screen bg-[#FDFCFB] text-black pb-20 overflow-x-hidden">
             <DashboardNavbar user={user} />
-            <div className="max-w-7xl mx-auto space-y-6 p-4">
-                {/* User Info Section */}
-                <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-100">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                            {data.photoURL ? (
-                                <Image
-                                    src={data.photoURL}
-                                    alt={data.name}
-                                    className="w-16 h-16 rounded-full object-cover"
-                                    width={64}
-                                    height={64}
-                                />
-                            ) : (
-                                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                                    <User size={32} className="text-gray-500" />
+
+            <main className="p-4 sm:p-8 md:p-12 max-w-7xl mx-auto">
+                <Link href={`/dashboard/c/${id}`}>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-white border-4 border-black font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer mb-8">
+                        <ArrowLeft size={16} /> Exit to Directory
+                    </button>
+                </Link>
+
+                <header className="mb-12 border-b-8 border-black pb-8">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                        <div className="flex flex-col sm:flex-row items-start gap-6 min-w-0">
+                            <div className="relative shrink-0">
+                                {data.photoURL ? (
+                                    <Image
+                                        src={data.photoURL}
+                                        alt={data.name}
+                                        className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] object-cover"
+                                        width={96}
+                                        height={96}
+                                    />
+                                ) : (
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-indigo-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
+                                        <User size={40} />
+                                    </div>
+                                )}
+                                <div className="absolute -bottom-2 -right-2 bg-black text-white px-2 py-1 font-black text-[9px] uppercase">
+                                    {data.role}
                                 </div>
-                            )}
-                            <div>
-                                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{data.name}</h1>
-                                <p className="text-gray-600">{data.email}</p>
-                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2">
-                                    <span className="text-sm text-gray-500">
-                                        Department: 
+                            </div>
+
+                            <div className="min-w-0 w-full">
+                                <h1 className="text-3xl sm:text-5xl font-black uppercase italic tracking-tighter leading-none mb-2 break-words">
+                                    {data.name}
+                                </h1>
+                                <p className="font-bold text-sm sm:text-base text-slate-500 uppercase tracking-widest mb-4 break-all">
+                                    {data.email}
+                                </p>
+
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                        <span className="font-black uppercase text-[9px]">Division:</span>
                                         {isEditingDepartment ? (
                                             <select
                                                 value={selectedDepartment}
                                                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                                                className="ml-1 px-2 py-1 border border-gray-300 rounded"
-                                                disabled={isUpdatingDepartment}
+                                                className="bg-transparent font-black uppercase text-[9px] outline-none"
                                             >
-                                                {data.departments.map((dept) => (
-                                                    <option key={dept} value={dept}>
-                                                        {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                                                {data.departments.map((d: string) => (
+                                                    <option key={d} value={d}>
+                                                        {d}
                                                     </option>
                                                 ))}
                                             </select>
                                         ) : (
-                                            <span className="font-medium ml-1">{data.department.charAt(0).toUpperCase() + data.department.slice(1)}</span>
+                                            <span className="font-black uppercase text-[9px] text-indigo-600">
+                                                {data.department}
+                                            </span>
                                         )}
-                                        {!isEditingDepartment ? (
+                                    </div>
+                                    {isEditingDepartment ? (
+                                        <div className="flex gap-2">
                                             <button
-                                                onClick={() => setIsEditingDepartment(true)}
-                                                className="ml-2 text-blue-500 hover:text-blue-700 text-sm"
+                                                onClick={handleUpdateDepartment}
+                                                className="bg-emerald-400 border-2 border-black p-1 cursor-pointer"
                                             >
-                                                Edit
+                                                <CheckCircle2 size={14} />
                                             </button>
-                                        ) : (
-                                            <div className="ml-2 flex flex-col sm:flex-row gap-1 sm:gap-2">
-                                                <button
-                                                    onClick={handleUpdateDepartment}
-                                                    className="text-green-500 hover:text-green-700 text-sm flex items-center gap-1"
-                                                    disabled={isUpdatingDepartment}
-                                                >
-                                                    {isUpdatingDepartment && <Loader size={12} className="animate-spin" />}
-                                                    Save
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setIsEditingDepartment(false);
-                                                        setSelectedDepartment(data.department);
-                                                    }}
-                                                    className="text-red-500 hover:text-red-700 text-sm"
-                                                    disabled={isUpdatingDepartment}
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        )}
-                                    </span>
-                                    <span className="text-sm text-gray-500">
-                                        Role: <span className="font-medium capitalize">{data.role}</span>
-                                    </span>
+                                            <button
+                                                onClick={() => setIsEditingDepartment(false)}
+                                                className="bg-rose-400 border-2 border-black p-1 cursor-pointer"
+                                            >
+                                                <XCircle size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setIsEditingDepartment(true)}
+                                            className="font-black uppercase text-[9px] underline decoration-2 cursor-pointer"
+                                        >
+                                            Change
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
+
                         <button
                             onClick={() => setIsRemoveModalOpen(true)}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hover:cursor-pointer w-full sm:w-auto"
+                            className="w-full lg:w-auto bg-rose-600 text-white border-4 border-black px-6 py-3 font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
-                            <Trash size={16} />
-                            Remove Member
+                            <Trash size={18} /> Expel Member
                         </button>
                     </div>
-                </section>
+                </header>
 
-                {/* Tasks Section */}
-                <main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Club Tasks */}
-                    <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                            <div className="flex items-center gap-3">
-                                <ClipboardCheck className="text-blue-600" size={24} />
-                                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
-                                    Club Tasks ({data.progress.filter(t => t.givenBy === "club").length})
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                    <section className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(79,70,229,1)]">
+                        <div className="flex items-center justify-between mb-8 border-b-4 border-black pb-4">
+                            <div className="flex items-center gap-2">
+                                <ClipboardCheck className="text-indigo-600" size={24} />
+                                <h2 className="text-xl sm:text-2xl font-black uppercase italic tracking-tighter">
+                                    Club Tasks
                                 </h2>
                             </div>
                             <button
                                 onClick={() => setIsModalOpen(true)}
-                                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hover:cursor-pointer w-full sm:w-auto"
+                                className="bg-indigo-600 text-white border-2 border-black px-3 py-1 font-black uppercase text-[10px] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all cursor-pointer"
                             >
-                                <Plus size={16} />
-                                Add Task
+                                Assign
                             </button>
                         </div>
-                        <div className="space-y-4">
-                            {data.progress.filter(t => t.givenBy === "club").length > 0 ? (
-                                data.progress.filter(t => t.givenBy === "club").map((task, index) => (
+                        <div className="space-y-6">
+                            {data.progress
+                                .filter((t: any) => t.givenBy === "club")
+                                .map((task: any, i: number) => (
                                     <TaskCard
-                                        key={index}
+                                        key={i}
                                         task={task}
-                                        onEditDueDate={handleEditDueDate}
-                                        onDeleteTask={handleDeleteTask}
+                                        onEditDueDate={(id, date) => {
+                                            setEditingTask({ progressId: id });
+                                            setNewDueDate(date);
+                                            setIsEditModalOpen(true);
+                                        }}
+                                        onDeleteTask={(id) => {
+                                            setDeletingTaskId(id);
+                                            setIsDeleteModalOpen(true);
+                                        }}
                                     />
-                                ))
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">
-                                    No club tasks assigned.
-                                </p>
-                            )}
+                                ))}
                         </div>
                     </section>
 
-                    {/* Personal Tasks */}
-                    <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <div className="flex items-center gap-3 mb-4">
-                            <User className="text-green-600" size={24} />
-                            <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
-                                Personal Tasks ({data.progress.filter(t => t.givenBy === "personal").length})
+                    <section className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(52,211,153,1)]">
+                        <div className="flex items-center gap-2 mb-8 border-b-4 border-black pb-4">
+                            <User className="text-emerald-500" size={24} />
+                            <h2 className="text-xl sm:text-2xl font-black uppercase italic tracking-tighter">
+                                Personal
                             </h2>
                         </div>
-                        <div className="space-y-4">
-                            {data.progress.filter(t => t.givenBy === "personal").length > 0 ? (
-                                data.progress.filter(t => t.givenBy === "personal").map((task, index) => (
+                        <div className="space-y-6">
+                            {data.progress
+                                .filter((t: any) => t.givenBy === "personal")
+                                .map((task: any, i: number) => (
                                     <TaskCard
-                                        key={index}
+                                        key={i}
                                         task={task}
-                                        onEditDueDate={handleEditDueDate}
-                                        onDeleteTask={handleDeleteTask}
+                                        onEditDueDate={(id, date) => {
+                                            setEditingTask({ progressId: id });
+                                            setNewDueDate(date);
+                                            setIsEditModalOpen(true);
+                                        }}
+                                        onDeleteTask={(id) => {
+                                            setDeletingTaskId(id);
+                                            setIsDeleteModalOpen(true);
+                                        }}
                                     />
-                                ))
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">
-                                    No personal tasks.
-                                </p>
-                            )}
+                                ))}
                         </div>
                     </section>
-                </main>
+                </div>
 
-                {/* Quest Submissions */}
-                <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mt-6">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Quest Submissions</h2>
+                <section className="border-4 border-black bg-slate-100 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-8 border-b-4 border-black pb-4">
+                        Quest Activity
+                    </h2>
                     <QuestSubmissions clubId={id as string} userId={userId as string} />
                 </section>
-            </div>
+            </main>
 
-            <AddTaskModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSubmit={handleAddTask}
-                isLoading={isAddingTask}
-            />
+            {/* Modals */}
+            <ModalWrapper isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                <h3 className="text-xl font-black uppercase italic mb-6">Assign Task</h3>
+                <form onSubmit={handleAddTask} className="space-y-4">
+                    <input
+                        type="text"
+                        placeholder="TASK TITLE"
+                        required
+                        value={newTask.title}
+                        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                        className="w-full border-4 border-black p-3 font-bold uppercase outline-none focus:bg-indigo-50"
+                    />
+                    <textarea
+                        placeholder="DESCRIPTION"
+                        required
+                        value={newTask.description}
+                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        rows={3}
+                        className="w-full border-4 border-black p-3 font-bold uppercase outline-none focus:bg-indigo-50"
+                    />
+                    <input
+                        type="date"
+                        required
+                        value={newTask.dueDate}
+                        onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                        className="w-full border-4 border-black p-3 font-bold uppercase outline-none"
+                    />
+                    <button
+                        disabled={isAddingTask}
+                        className="w-full bg-black text-white border-4 border-black py-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(79,70,229,1)] hover:shadow-none transition-all cursor-pointer"
+                    >
+                        Deploy Task
+                    </button>
+                </form>
+            </ModalWrapper>
 
-            {editingTask && (
-                <EditDueDateModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    onSubmit={handleUpdateDueDate}
-                    currentDueDate={editingTask.currentDueDate}
-                    isLoading={isUpdatingDueDate}
-                />
-            )}
+            <ModalWrapper isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+                <h3 className="text-xl font-black uppercase italic mb-6">New Deadline</h3>
+                <form onSubmit={handleUpdateDueDate} className="space-y-6">
+                    <input
+                        type="date"
+                        value={newDueDate}
+                        onChange={(e) => setNewDueDate(e.target.value)}
+                        className="w-full border-4 border-black p-3 font-bold uppercase outline-none"
+                    />
+                    <button
+                        disabled={isUpdatingDueDate}
+                        className="w-full bg-emerald-400 border-4 border-black py-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all cursor-pointer"
+                    >
+                        Update
+                    </button>
+                </form>
+            </ModalWrapper>
 
-            <RemoveMemberModal
-                isOpen={isRemoveModalOpen}
-                onClose={() => setIsRemoveModalOpen(false)}
-                onConfirm={handleRemoveMember}
-                isLoading={isRemovingMember}
-            />
+            <ModalWrapper isOpen={isRemoveModalOpen} onClose={() => setIsRemoveModalOpen(false)}>
+                <h3 className="text-xl font-black uppercase italic mb-4 text-rose-600">Danger Area</h3>
+                <p className="font-bold uppercase text-xs mb-8">
+                    Expel this member? This action is irreversible.
+                </p>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={handleRemoveMember}
+                        disabled={isRemovingMember}
+                        className="w-full bg-rose-600 text-white border-4 border-black py-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all cursor-pointer"
+                    >
+                        Confirm Expulsion
+                    </button>
+                    <button
+                        onClick={() => setIsRemoveModalOpen(false)}
+                        className="w-full bg-white border-4 border-black py-4 font-black uppercase cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </ModalWrapper>
 
-            <DeleteTaskModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={handleConfirmDeleteTask}
-                isLoading={isDeletingTask}
-            />
+            <ModalWrapper isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
+                <h3 className="text-xl font-black uppercase italic mb-6">Delete Task</h3>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={handleConfirmDeleteTask}
+                        disabled={isDeletingTask}
+                        className="w-full bg-black text-white border-4 border-black py-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(225,29,72,1)] hover:shadow-none transition-all cursor-pointer"
+                    >
+                        Delete Permanently
+                    </button>
+                    <button
+                        onClick={() => setIsDeleteModalOpen(false)}
+                        className="w-full bg-white border-4 border-black py-4 font-black uppercase cursor-pointer"
+                    >
+                        Abort
+                    </button>
+                </div>
+            </ModalWrapper>
         </div>
     );
 }

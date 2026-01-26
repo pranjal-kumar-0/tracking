@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
-import { Users, UserCircle, Calendar, Briefcase } from 'lucide-react';
+import { Users, UserCircle, Calendar, Briefcase, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { motion } from "framer-motion";
 
 interface Club {
   id: string;
@@ -43,74 +44,112 @@ const ClubDashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
+      <div className="flex min-h-screen flex-col bg-[#FDFCFB]">
         <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div>Loading your clubs...</div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
-        <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div>Error: {error}</div>
+        <main className="flex-1 flex items-center justify-center">
+          <div className="border-4 border-black p-6 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-bounce font-black uppercase">
+            Loading your fleet...
+          </div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
+    <div className="flex min-h-screen flex-col bg-[#FDFCFB] text-black">
       <DashboardNavbar user={user} />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-6 md:p-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-10">
-            <h1 className="text-4xl font-bold tracking-tighter text-gray-800">
+          <header className="mb-12">
+            <h1 className="text-5xl md:text-6xl font-black tracking-tighter uppercase leading-none italic">
               My <span className="text-indigo-600">Clubs</span>
             </h1>
-          </div>
+            <p className="mt-4 text-slate-500 font-bold uppercase tracking-widest text-sm">
+              Manage and monitor your active organizations
+            </p>
+          </header>
 
           {clubs.length === 0 ? (
-            <div className="text-center text-gray-500">You are not part of any clubs yet.</div>
+            <div className="border-4 border-dashed border-black p-20 text-center bg-white shadow-[10px_10px_0px_0px_rgba(0,0,0,0.05)]">
+              <Users className="mx-auto h-16 w-16 mb-4 opacity-20" />
+              <p className="text-xl font-black uppercase italic text-slate-400">No active affiliations found.</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
               {clubs.map((club) => (
-                <Link key={club.id} href={`/dashboard/c/${club.id}`}>
-                  <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col border-t-4 border-indigo-500">
-                    <div className="p-6 grow">
-                      <h2 className="text-2xl font-bold text-gray-800 mb-5">{club.name}</h2>
-
-                      {/* Departments */}
-                      <div className="mb-5">
-                        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                          <Briefcase className="h-5 w-5 text-indigo-500" />
-                          Departments ({club.departments.length})
-                        </h3>
-                        <div className="space-y-1.5 text-sm text-gray-600">
-                          {club.departments.map(dep => <p key={dep}>{dep}</p>)}
+                <Link key={club.id} href={`/dashboard/c/${club.id}`} className="no-underline group">
+                  <motion.div 
+                    whileHover={{ x: -4, y: -4 }}
+                    className="h-full bg-white border-4 border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-[14px_14px_0px_0px_rgba(79,70,229,1)] transition-all flex flex-col overflow-hidden"
+                  >
+                    <div className="p-6 flex-1 flex flex-col">
+                      <div className="flex justify-between items-start mb-6">
+                        <h2 className="text-2xl font-black uppercase tracking-tight leading-tight group-hover:text-indigo-600 transition-colors">
+                          {club.name}
+                        </h2>
+                        <div className="bg-black p-2 group-hover:bg-indigo-600 transition-colors">
+                            <ArrowRight className="text-white h-5 w-5" />
                         </div>
                       </div>
 
-                      <div className="mb-5">
-                        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                          <UserCircle className="h-5 w-5 text-indigo-500" />
-                          Admins ({club.adminIds.length})
-                        </h3>
-                        <div className="space-y-1.5 text-sm text-gray-600">
-                          {club.adminIds.map(admin => <p key={admin} className="truncate">{admin}</p>)}
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="border-2 border-black p-3 bg-yellow-50">
+                           <p className="text-[10px] font-black uppercase text-slate-500 mb-1 flex items-center gap-1">
+                             <Briefcase size={12} /> Departments
+                           </p>
+                           <p className="text-xl font-black leading-none">{club.departments.length}</p>
+                        </div>
+                        <div className="border-2 border-black p-3 bg-indigo-50">
+                           <p className="text-[10px] font-black uppercase text-slate-500 mb-1 flex items-center gap-1">
+                             <UserCircle size={12} /> Staff
+                           </p>
+                           <p className="text-xl font-black leading-none">{club.adminIds.length}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 flex-1">
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Departments</p>
+                           <div className="flex flex-wrap gap-1.5">
+                             {club.departments.slice(0, 3).map(dep => (
+                               <span key={dep} className="px-2 py-0.5 border border-black bg-white text-[9px] font-black uppercase">
+                                 {dep}
+                               </span>
+                             ))}
+                             {club.departments.length > 3 && (
+                               <span className="px-2 py-0.5 border border-black bg-slate-100 text-[9px] font-black italic">
+                                 +{club.departments.length - 3} MORE
+                               </span>
+                             )}
+                           </div>
+                        </div>
+
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Administration</p>
+                           <div className="flex -space-x-2">
+                              {club.adminIds.slice(0, 5).map((admin, i) => (
+                                <div key={i} className="h-8 w-8 border-2 border-black bg-white rounded-none flex items-center justify-center font-black text-[10px] uppercase shadow-[1px_1px_0px_0px_black] overflow-hidden bg-gradient-to-br from-indigo-100 to-white">
+                                   {admin.charAt(0)}
+                                </div>
+                              ))}
+                              {club.adminIds.length > 5 && (
+                                <div className="h-8 w-8 border-2 border-black bg-black text-white flex items-center justify-center font-black text-[10px]">
+                                   +{club.adminIds.length - 5}
+                                </div>
+                              )}
+                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-b-xl mt-auto px-6 py-3 border-t border-gray-200 flex items-center gap-2 text-sm text-gray-500">
-                      <Calendar className="h-4 w-4" />
-                      Created: {new Date(club.createdAt._seconds * 1000).toLocaleDateString()}
+                    <div className="bg-slate-50 border-t-2 border-black px-6 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter">
+                        <Calendar size={14} className="text-indigo-600" />
+                        EST. {new Date(club.createdAt._seconds * 1000).toLocaleDateString()}
+                      </div>
+                      <div className="h-2 w-2 bg-green-500 border border-black rounded-full" />
                     </div>
-                  </div>
+                  </motion.div>
                 </Link>
               ))}
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut } from "lucide-react";
+import { LogOut, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import { signOut } from "firebase/auth";
@@ -25,24 +25,18 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({ user, backHref }) => 
   const rating = profile?.rating || "Pawn";
   const points = profile?.points ?? 0;
 
-  // --- 1. DEFINE RANK STYLES ---
-  // Pawn (Silver) | Bishop (Purple) | Knight (Pink) | Rook (Amber)
-  let ratingIcon = <FaChessPawn className="text-slate-500" />;
-  let ratingText = "text-slate-600";
-  let btnGradient = "border border-gray-200 bg-white text-gray-800"; // Default Pawn style
+  let rankBg = "bg-slate-200";
+  let ratingIcon = <FaChessPawn />;
 
   if (rating === "Bishop") {
-    ratingIcon = <FaChessBishop className="text-violet-600" />;
-    ratingText = "text-violet-700";
-    btnGradient = "bg-gradient-to-r from-violet-100 via-purple-50 to-violet-200 text-violet-900 border-violet-200";
+    rankBg = "bg-violet-400";
+    ratingIcon = <FaChessBishop />;
   } else if (rating === "Knight") {
-    ratingIcon = <FaChessKnight className="text-pink-600" />;
-    ratingText = "text-pink-700";
-    btnGradient = "bg-gradient-to-r from-pink-100 via-rose-50 to-pink-200 text-pink-900 border-pink-200";
+    rankBg = "bg-pink-400";
+    ratingIcon = <FaChessKnight />;
   } else if (rating === "Rook") {
-    ratingIcon = <FaChessRook className="text-amber-600" />;
-    ratingText = "text-amber-700";
-    btnGradient = "bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-200 text-amber-900 border-amber-200";
+    rankBg = "bg-orange-400";
+    ratingIcon = <FaChessRook />;
   }
 
   const handleLogout = async () => {
@@ -55,82 +49,75 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({ user, backHref }) => 
   };
 
   return (
-    <header className="sticky top-0 left-0 z-40 flex w-full items-center justify-between p-4 md:p-8 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <header className="sticky top-0 left-0 z-40 flex w-full items-center justify-between p-4 md:px-8 md:py-6 bg-[#FDFCFB] border-b-4 border-black">
       {backHref ? (
-        <Link href={backHref} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50 transition">
-          <span aria-hidden>←</span>
-          Back to dashboard
+        <Link 
+          href={backHref} 
+          className="group flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all no-underline text-black"
+        >
+          <ArrowLeft size={16} strokeWidth={3} />
+          <span className="hidden md:inline">Back to dashboard</span>
         </Link>
       ) : (
-        <Link href="/">
-          <h1 className="text-2xl font-bold tracking-tighter">
+        <Link href="/" className="no-underline text-black">
+          <h1 className="text-2xl font-black tracking-tighter uppercase m-0">
             Club<span className="text-indigo-600">Sync</span>
           </h1>
         </Link>
       )}
 
       <div className="relative">
-        <motion.button
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold shadow-sm transition hover:shadow-md ${btnGradient}`}
+        <button
+          className="flex items-center gap-3 border-2 border-black bg-white p-1 pr-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
-          <Image
-            src={user?.photoURL || 'https://avatar.iran.liara.run/public'}
-            alt="Profile"
-            width={24}
-            height={24}
-            className="w-6 h-6 rounded-full border border-white/50"
-          />
-          <span className="flex items-center gap-2">
-            <span className="hidden sm:inline">{user?.displayName}</span>
-            
-            {/* Rank Badge */}
-            <span className={`flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-xs font-bold shadow-sm ${ratingText}`}>
-              {ratingIcon}
-              {rating}
-            </span>
-            
-            {/* Points Badge */}
-            <span className="flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-              {points} pts
-            </span>
-          </span>
-        </motion.button>
+          <div className="relative w-10 h-10 border-2 border-black bg-yellow-400 overflow-hidden">
+             <Image
+                src={user?.photoURL || 'https://avatar.iran.liara.run/public'}
+                alt="Profile"
+                fill
+                className="object-cover"
+              />
+          </div>
+          
+          <div className="flex flex-col items-start leading-none gap-1">
+            <span className="text-[10px] text-slate-500 block">{user?.displayName?.split(' ')[0]}</span>
+            <div className="flex items-center gap-2">
+                <span className={`flex items-center gap-1 border border-black px-1.5 py-0.5 text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${rankBg}`}>
+                  {ratingIcon} {rating}
+                </span>
+                <span className="bg-black text-white px-1.5 py-0.5 text-[10px] border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {points} PTS
+                </span>
+            </div>
+          </div>
+        </button>
 
         <AnimatePresence>
           {isDropdownOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-xl shadow-xl min-w-40 p-1 z-50 overflow-hidden"
-              onMouseLeave={() => setIsDropdownOpen(false)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute top-[calc(100%+12px)] right-0 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[200px] z-50"
             >
               <Link
                 href="/points"
-                className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-slate-50 rounded-lg text-slate-700 transition-colors text-sm font-medium"
+                className="flex items-center gap-3 w-full text-left p-4 hover:bg-indigo-50 border-b-2 border-black no-underline text-black transition-colors text-sm font-black uppercase"
                 onClick={() => setIsDropdownOpen(false)}
               >
-                <div className="p-1.5 bg-violet-100 text-violet-600 rounded-md">
-                   <FaChessBishop size={14} />
-                </div>
-                My Rank & Quests
+                <FaChessBishop className="text-indigo-600" />
+                My Quests
               </Link>
               
-              <div className="h-px bg-gray-100 my-1"></div>
-
               <button
-                className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-red-50 rounded-lg text-red-600 transition-colors text-sm font-medium"
+                className="flex items-center gap-3 w-full text-left p-4 hover:bg-red-50 text-red-600 transition-colors text-sm font-black uppercase cursor-pointer"
                 onClick={() => {
                   handleLogout();
                   setIsDropdownOpen(false);
                 }}
               >
-                <div className="p-1.5 bg-red-100 text-red-500 rounded-md">
-                  <LogOut size={14} />
-                </div>
+                <LogOut size={18} strokeWidth={3} />
                 Sign Out
               </button>
             </motion.div>

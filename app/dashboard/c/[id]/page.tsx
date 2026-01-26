@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../../providers/AuthProvider";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
-import { Briefcase, Settings, Loader } from 'lucide-react';
+import { Briefcase, Settings, Loader, UserCheck, UserX, Clock, ChevronRight, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { motion, AnimatePresence } from "framer-motion";
 
 const MemberCardWithCount = ({ member, clubId }: { member: User; clubId: string }) => {
   const [count, setCount] = useState(0);
+  const isAdmin = member.role === "admin";
   
   useEffect(() => {
     fetch("/api/admin/submissions/get-submissions", {
@@ -17,42 +19,77 @@ const MemberCardWithCount = ({ member, clubId }: { member: User; clubId: string 
       body: JSON.stringify({ clubId, userId: member.id }),
     })
       .then((r) => r.json())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((d) => setCount(d.submissions?.filter((s: any) => s.status === "pending").length || 0))
       .catch(() => {});
   }, [clubId, member.id]);
 
   const pts = member.points || 0;
   const rating = pts >= 2000 ? "Rook" : pts >= 1200 ? "Knight" : pts >= 800 ? "Bishop" : "Pawn";
-  const ratingColor = rating === "Rook" ? "bg-amber-100 text-amber-700" : rating === "Knight" ? "bg-pink-100 text-pink-700" : rating === "Bishop" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-700";
+  
+  const ratingStyles: Record<string, string> = {
+    Rook: "bg-amber-100 text-amber-700 border-amber-200",
+    Knight: "bg-purple-100 text-purple-700 border-purple-200",
+    Bishop: "bg-slate-100 text-slate-700 border-slate-300",
+    Pawn: "bg-gray-100 text-gray-600 border-gray-200"
+  };
+
+  // ADMIN STYLE: Deep Red / Red-950
+  const borderClass = isAdmin 
+    ? "border-red-950 shadow-[6px_6px_0px_0px_rgba(69,10,10,1)]" 
+    : "border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]";
+
+  const hoverShadow = isAdmin 
+    ? "hover:shadow-[10px_10px_0px_0px_rgba(69,10,10,1)]" 
+    : "hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]";
 
   return (
-    <Link href={`/dashboard/c/${clubId}/${member.id}`}>
-      <div className="relative bg-linear-to-br from-gray-50 to-gray-100 p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+    <Link href={`/dashboard/c/${clubId}/${member.id}`} className="w-full">
+      <motion.div 
+        whileHover={{ y: -4 }}
+        className={`relative bg-white p-5 rounded-2xl border-4 transition-all cursor-pointer group h-full flex flex-col ${borderClass} ${hoverShadow}`}
+      >
+        {isAdmin && (
+          <div className="absolute -top-3 left-4 bg-red-950 text-white px-2 py-0.5 text-[9px] font-black uppercase flex items-center gap-1 z-10">
+            <ShieldCheck size={10} /> Admin 
+          </div>
+        )}
+
         {count > 0 && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded-full">
-            {count}
+          <span className={`absolute -top-3 -right-3 px-3 py-1 bg-orange-500 text-white text-[10px] font-black rounded-none border-2 ${isAdmin ? 'border-red-950' : 'border-black'} uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,0.15)] z-10`}>
+            {count} Alerts
           </span>
         )}
-        <div className="flex items-center gap-3 mb-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">{member.name || 'No Name'}</p>
-            <p className="text-xs text-gray-600">{member.email}</p>
+        
+        <div className="mb-4">
+          <p className={`text-sm font-black uppercase tracking-tight truncate transition-colors ${isAdmin ? 'group-hover:text-red-800' : 'group-hover:text-indigo-600'}`}>
+            {member.name || 'Anonymous'}
+          </p>
+          <p className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-tighter">{member.email}</p>
+        </div>
+
+        <div className={`space-y-2 border-t-2 ${isAdmin ? 'border-red-100' : 'border-black'} pt-3 mt-auto`}>
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-black uppercase text-slate-400">Class</span>
+            <span className={`text-[10px] font-bold uppercase italic ${isAdmin ? 'text-red-900' : 'text-black'}`}>
+              {member.role || 'Member'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-black uppercase text-slate-400">Since</span>
+            <span className="text-[10px] font-bold uppercase italic">
+                {(() => {
+                const date = member.joinedAt || member.createdAt;
+                return date?._seconds ? new Date(date._seconds * 1000).toLocaleDateString('en-GB') : 'N/A';
+                })()}
+            </span>
           </div>
         </div>
-        <div className="space-y-1 text-xs text-gray-600">
-          <p><span className="font-medium">Role:</span> {member.role || 'Member'}</p>
-          <p><span className="font-medium">Joined:</span> {(() => {
-            const date = member.joinedAt || member.createdAt;
-            if (date && date._seconds) {
-              return new Date(date._seconds * 1000).toLocaleDateString('en-GB');
-            }
-            return 'Unknown';
-          })()}</p>
+
+        <div className={`mt-4 w-fit px-3 py-1 text-[9px] font-black uppercase border-2 ${isAdmin ? 'border-red-950 bg-red-50 text-red-950' : 'border-black bg-slate-50 text-slate-700'}`}>
+          {rating} Rank
         </div>
-        <span className={`absolute bottom-2 right-2 px-2 py-0.5 text-[10px] font-bold rounded-full ${ratingColor}`}>
-          {rating}
-        </span>
-      </div>
+      </motion.div>
     </Link>
   );
 };
@@ -72,13 +109,9 @@ interface User {
   };
 }
 
-type FirestoreTimestamp =
-  | { seconds: number; nanoseconds?: number }
-  | { _seconds: number; _nanoseconds?: number };
-
 interface Applicant {
   id: string;
-  appliedAt: FirestoreTimestamp | string | number | null;
+  appliedAt: { _seconds: number; _nanoseconds?: number } | string | number | null;
   department: string;
   email: string;
   role: string;
@@ -151,11 +184,10 @@ export default function Page() {
         fetchApplicants(id);
         fetchMembers(id);
       } else {
-        const error = await res.json();
-        setError(error.error || 'Failed to accept');
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to accept');
       }
     } catch (error) {
-      console.error('Error accepting:', error);
       setError('Error accepting');
     } finally {
       setIsAccepting(false);
@@ -173,11 +205,10 @@ export default function Page() {
       if (res.ok) {
         fetchApplicants(id);
       } else {
-        const error = await res.json();
-        setError(error.error || 'Failed to reject');
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to reject');
       }
     } catch (error) {
-      console.error('Error rejecting:', error);
       setError('Error rejecting');
     } finally {
       setIsRejecting(false);
@@ -192,7 +223,7 @@ export default function Page() {
   };
 
   const groupedMembers = members.reduce((acc, mem) => {
-    const dept = mem.department || 'No Department';
+    const dept = mem.department || 'General';
     if (!acc[dept]) acc[dept] = [];
     acc[dept].push(mem);
     return acc;
@@ -200,164 +231,155 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
+      <div className="flex min-h-screen flex-col bg-[#FDFCFB]">
         <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div className="text-center">Loading club dashboard...</div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
-        <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div className="text-center text-red-600">Error: {error}</div>
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="border-4 border-black p-6 bg-white shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4">
+            <Loader className="animate-spin h-6 w-6" />
+            <span className="font-black uppercase italic tracking-tighter">Syncing Roster...</span>
+          </div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
+    <div className="flex min-h-screen flex-col bg-[#FDFCFB] text-black">
       <DashboardNavbar user={user} />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 sm:p-8 md:p-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-10">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 sm:mb-20">
             <div>
-              <h1 className="text-4xl font-bold tracking-tighter text-gray-800">
-                Club Dashboard
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter uppercase italic leading-none">
+                Club <span className="text-indigo-600">Members</span>
               </h1>
-              <p className="text-gray-600 mt-2">
-                Members of the club, classified by department
-              </p>
+              <div className="mt-4 flex items-center gap-2">
+                 <div className="h-2 w-8 sm:w-12 bg-black" />
+                 <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-500">Management</p>
+              </div>
             </div>
-            <Link href={`/dashboard/c/${id}/settings`}>
-              <button className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300">
-                <Settings className="h-5 w-5" />
+            <Link href={`/dashboard/c/${id}/settings`} className="w-full md:w-auto">
+              <button className="group w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-white border-4 border-black font-black uppercase shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer">
+                <Settings className="h-5 w-5 group-hover:rotate-90 transition-transform" />
                 Settings
               </button>
             </Link>
           </div>
 
-          {/* Members Grouped by Department */}
-          <div className="space-y-8">
+          {/* Members List */}
+          <div className="space-y-12 sm:space-y-20">
             {Object.entries(groupedMembers).map(([dept, deptMembers]) => (
-              <div key={dept} className="bg-white p-6 rounded-2xl shadow-md">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-indigo-600">
-                  <Briefcase className="h-6 w-6" />
-                  {dept.charAt(0).toUpperCase() + dept.slice(1)} ({deptMembers.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <section key={dept}>
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="bg-black text-white p-2 border-2 border-black hidden sm:block">
+                        <Briefcase className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight italic">
+                    {dept} <span className="text-indigo-600">/ {deptMembers.length}</span>
+                    </h2>
+                    <div className="flex-1 h-1 bg-black/10" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
                   {deptMembers.map(mem => (
                     <MemberCardWithCount key={mem.id} member={mem} clubId={id} />
                   ))}
                 </div>
-              </div>
+              </section>
             ))}
           </div>
 
           {/* Applicants Section */}
           {applicants.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl mt-3 shadow-md">
-              <h2 className="text-2xl font-bold mb-6 text-orange-600">
-                Applicants ({applicants.length})
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-20 sm:mt-32 border-4 sm:border-8 border-orange-500 bg-white p-6 sm:p-10 shadow-[10px_10px_0px_0px_rgba(249,115,22,1)] sm:shadow-[20px_20px_0px_0px_rgba(249,115,22,1)]"
+            >
+              <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic flex items-center gap-3 text-orange-600 mb-10 border-b-4 border-black pb-4">
+                  <Clock className="h-8 w-8 sm:h-10 sm:w-10" />
+                  Pending Registry ({applicants.length})
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
                 {applicants.map(app => (
-                  <div key={app.id} className="bg-yellow-50 p-4 rounded-xl shadow-sm border border-yellow-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-800">{app.name || 'No Name'}</p>
-                        <p className="text-xs text-gray-600">{app.email}</p>
-                      </div>
+                  <div key={app.id} className="bg-orange-50 p-6 border-4 border-black flex flex-col h-full shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="mb-4">
+                        <p className="text-lg font-black uppercase tracking-tight text-black truncate">{app.name || 'New Prospect'}</p>
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">{app.email}</p>
                     </div>
-                    <div className="space-y-1 text-xs text-gray-600 mb-4">
-                      <p><span className="font-medium">Department:</span> {app.department.charAt(0).toUpperCase() + app.department.slice(1)}</p>
-                      <p>
-                        <span className="font-medium">Applied:</span>{" "}
-                        {(() => {
-                          const a = app.appliedAt;
-                          if (!a) return 'Unknown';
-                          if (typeof a === 'object') {
-                            if ('seconds' in a && typeof (a as { seconds: number }).seconds === 'number') {
-                              return new Date((a as { seconds: number }).seconds * 1000).toLocaleDateString();
-                            }
-                            if ('_seconds' in a && typeof (a as { _seconds: number })._seconds === 'number') {
-                              return new Date((a as { _seconds: number })._seconds * 1000).toLocaleDateString();
-                            }
-                          }
-                          if (typeof a === 'number') {
-                            return new Date(a * 1000).toLocaleDateString();
-                          }
-                          if (typeof a === 'string') {
-                            const d = new Date(a);
-                            return isNaN(d.getTime()) ? 'Unknown' : d.toLocaleDateString();
-                          }
-                          return 'Unknown';
-                        })()}
-                      </p>
+                    <div className="flex-1 space-y-2 mb-6 text-[10px] font-black uppercase">
+                        <div className="flex justify-between border-b border-black/10 py-1">
+                            <span>Req. Dept</span>
+                            <span className="italic">{app.department}</span>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => openAcceptModal(app)}
-                        className="flex-1 px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        className="flex-1 px-4 py-3 bg-white border-4 border-black font-black uppercase text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
+                        <UserCheck size={14} className="text-green-600" />
                         Accept
                       </button>
                       <button
                         onClick={() => handleReject(app.id)}
-                        className="flex-1 px-3 py-2 bg-red-600 text-white text-xs rounded hover:bg-red-700 flex items-center justify-center gap-1"
+                        className="px-4 py-3 bg-white border-4 border-black font-black uppercase text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all disabled:opacity-50 cursor-pointer"
                         disabled={isRejecting}
                       >
-                        {isRejecting && <Loader size={12} className="animate-spin" />}
-                        Reject
+                        {isRejecting ? <Loader className="animate-spin" size={14} /> : <UserX size={14} className="text-red-600" />}
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* Modal for Accept */}
-          {modalOpen && selectedApplicant && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                <h3 className="text-lg font-bold mb-4">Accept Applicant</h3>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Role</label>
-                  <select
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'member')}
-                    className="w-full px-3 py-2 border rounded"
-                  >
-                    <option value="member">Member</option>
-                    <option value="admin">Admin</option>
-                  </select>
+          {/* Modal */}
+          <AnimatePresence>
+            {modalOpen && selectedApplicant && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white border-8 border-black p-8 shadow-[15px_15px_0px_0px_rgba(249,115,22,1)] w-full max-w-md"
+                    >
+                        <h3 className="text-2xl font-black uppercase tracking-tighter mb-6 italic border-b-4 border-black pb-2">Entry Approval</h3>
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-widest mb-2">Clearance Level</label>
+                                <select
+                                    value={selectedRole}
+                                    onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'member')}
+                                    className="w-full px-4 py-4 border-4 border-black font-black uppercase bg-slate-50 outline-none focus:ring-4 ring-orange-100"
+                                >
+                                    <option value="member">Field Member</option>
+                                    <option value="admin">System Admin</option>
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={handleAccept}
+                                    className="px-4 py-4 bg-black text-white border-4 border-black font-black uppercase text-xs shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                    disabled={isAccepting}
+                                >
+                                    {isAccepting ? <Loader className="animate-spin" /> : <ChevronRight />}
+                                    Approve
+                                </button>
+                                <button
+                                    onClick={() => setModalOpen(false)}
+                                    className="px-4 py-4 bg-white border-4 border-black font-black uppercase text-xs shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer"
+                                    disabled={isAccepting}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAccept}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-1"
-                    disabled={isAccepting}
-                  >
-                    {isAccepting && <Loader size={12} className="animate-spin" />}
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => setModalOpen(false)}
-                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                    disabled={isAccepting}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </AnimatePresence>
         </div>
       </main>
     </div>

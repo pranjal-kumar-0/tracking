@@ -8,22 +8,24 @@ import {
     ClipboardCheck,
     User,
     CalendarDays,
-    ChevronsUpDown,
     Trash2,
     Loader,
+    ArrowLeft,
+    Compass,
+    Save
 } from "lucide-react";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
 import { useAuth } from "@/providers/AuthProvider";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
-// types for tasks and clubs
 interface Task {
     id: string;
     createdAt: string;
     department: string;
     description: string;
     title: string;
-    dueDate: string; 
+    dueDate: string;
     status: number;
     givenBy: "personal" | "club";
 }
@@ -35,26 +37,25 @@ interface Club {
     createdAt: Date;
 }
 
-// progress bar component
 const SteppedProgressBar = ({ progress }: { progress: number }) => {
     const segments = 10;
     const filledSegments = Math.round((progress / 100) * segments);
-    const color = progress === 100 ? "bg-green-500" : "bg-blue-500";
 
     return (
-        <div className="flex w-full gap-1 h-3">
+        <div className="flex w-full gap-1 h-4 border-2 border-black p-0.5 bg-black">
             {Array.from({ length: segments }).map((_, i) => (
                 <div
                     key={i}
-                    className={`flex-1 h-full rounded ${i < filledSegments ? color : "bg-gray-200"
-                        } transition-all duration-300`}
+                    className={`flex-1 h-full ${i < filledSegments
+                        ? (progress === 100 ? "bg-emerald-400" : "bg-indigo-400")
+                        : "bg-white"
+                        }`}
                 />
             ))}
         </div>
     );
 };
 
-// task card to display each task
 const TaskCard = ({
     task,
     onEdit,
@@ -67,261 +68,63 @@ const TaskCard = ({
     const isOverdue = new Date(task.dueDate) < new Date() && task.status < 100;
 
     return (
-        <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-start mb-3">
-                <h3 className="text-lg font-semibold text-gray-800">{task.title}</h3>
-                <div className="flex gap-1">
+        <div className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+            <div className="flex justify-between items-start mb-4 gap-2">
+                <h3 className="text-xl font-black uppercase italic tracking-tighter leading-tight break-words">{task.title}</h3>
+                <div className="flex gap-2 shrink-0">
                     <button
                         onClick={() => onEdit(task)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200 shadow-sm"
-                        aria-label="Edit task"
+                        className="p-2 border-2 border-black bg-indigo-50 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                     >
-                        <Edit2 size={18} />
+                        <Edit2 size={16} />
                     </button>
                     {task.givenBy === "personal" && (
                         <button
                             onClick={() => onDelete(task)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 shadow-sm"
-                            aria-label="Delete task"
+                            className="p-2 border-2 border-black bg-rose-50 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
                         >
-                            <Trash2 size={18} />
-                    </button>
+                            <Trash2 size={16} />
+                        </button>
                     )}
                 </div>
             </div>
-            <p className="text-sm text-gray-600 mb-4">{task.description}</p>
+            <p className="font-bold text-xs text-slate-600 uppercase mb-6 break-words">{task.description}</p>
 
-            <div className="mb-4">
-                <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-medium text-gray-500">Progress</span>
-                    <span
-                        className={`text-sm font-semibold ${task.status === 100 ? "text-green-600" : "text-blue-600"
-                            }`}
-                    >
-                        {task.status}%
-                    </span>
+            <div className="mb-6">
+                <div className="flex justify-between items-end mb-2">
+                    <span className="font-black uppercase text-[9px] tracking-widest text-slate-400">Progression</span>
+                    <span className="font-black text-sm">{task.status}%</span>
                 </div>
                 <SteppedProgressBar progress={task.status} />
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-                <div
-                    className={`flex items-center gap-1.5 ${isOverdue ? "text-red-600 font-medium" : "text-gray-500"
-                        }`}
-                >
-                    <CalendarDays size={16} />
-                    <span>
-                        {isOverdue ? "Overdue" : "Due"}:{" "}
-                        {new Date(task.dueDate).toLocaleDateString()}
-                    </span>
+            <div className="flex items-center justify-between pt-4 border-t-2 border-black border-dashed">
+                <div className={`flex items-center gap-1.5 font-black uppercase text-[10px] ${isOverdue ? "text-rose-600" : "text-black"}`}>
+                    <CalendarDays size={14} />
+                    <span>{isOverdue ? "EXPIRED" : "DUE"}: {new Date(task.dueDate).toLocaleDateString('en-GB')}</span>
                 </div>
                 {task.status === 100 && (
-                    <span className="text-green-600 font-medium text-xs px-2 py-0.5 bg-green-50 rounded-full">
-                        Completed
-                    </span>
+                    <div className="bg-emerald-400 border-2 border-black px-2 py-0.5 font-black text-[9px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        Verified
+                    </div>
                 )}
             </div>
         </div>
     );
 };
 
-// modal for adding or editing tasks
-const TaskModal = ({
-    isOpen,
-    onClose,
-    onSave,
-    task,
-    isSaving,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    onSave: (task: Omit<Task, "id" | "createdAt" | "department"> & { id?: string }) => void;
-    task: Partial<Task> | null;
-    isSaving: boolean;
-}) => {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [dueDate, setDueDate] = useState("");
-    const [status, setStatus] = useState(0);
-    const [givenBy, setGivenBy] = useState<"personal" | "club">("personal");
-
-    React.useEffect(() => {
-        if (task) {
-            setTitle(task.title || "");
-            setDescription(task.description || "");
-            setDueDate(task.dueDate || new Date().toISOString().split("T")[0]);
-            setStatus(task.status || 0);
-            setGivenBy(task.givenBy || "personal");
-        } else {
-            // Reset for new task
-            setTitle("");
-            setDescription("");
-            setDueDate(new Date().toISOString().split("T")[0]);
-            setStatus(0);
-            setGivenBy("personal");
-        }
-    }, [task, isOpen]);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({
-            id: task?.id,
-            title,
-            description,
-            dueDate,
-            status,
-            givenBy,
-        });
-    };
-
-    const isEditing = !!task?.id;
-
+const ModalWrapper = ({ children, isOpen, onClose }: { children: React.ReactNode; isOpen: boolean; onClose: () => void }) => {
     if (!isOpen) return null;
-
     return (
-        <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-center"
-            onClick={onClose}
-        >
-            <div
-                className="bg-white w-full max-w-lg p-6 rounded-xl shadow-2xl relative m-4"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-all"
-                    disabled={isSaving}
-                >
-                    <X size={24} />
-                </button>
-                <h2 className="text-xl font-bold text-gray-900 mb-6">
-                    {isEditing ? "Update Progress" : "Add New Task"}
-                </h2>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isEditing && (
-                        <>
-                            <div>
-                                <label
-                                    htmlFor="title"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
-                                >
-                                    Title
-                                </label>
-                                <input
-                                    type="text"
-                                    id="title"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    required
-                                    disabled={isSaving}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="description"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
-                                >
-                                    Description
-                                </label>
-                                <textarea
-                                    id="description"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={3}
-                                    disabled={isSaving}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label
-                                        htmlFor="dueDate"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Due Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        id="dueDate"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                        required
-                                        disabled={isSaving}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label
-                                        htmlFor="givenBy"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Task Type
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            id="givenBy"
-                                            value={givenBy}
-                                            onChange={(e) => setGivenBy(e.target.value as "personal" | "club")}
-                                            disabled={isSaving}
-                                            className="w-full appearance-none px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="personal">Personal</option>
-                                            <option value="club">Club</option>
-                                        </select>
-                                        <ChevronsUpDown
-                                            size={18}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* Status/Progress */}
-                    <div>
-                        <label
-                            htmlFor="status"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                            Progress: <span className="font-bold text-blue-600">{status}%</span>
-                        </label>
-                        <input
-                            type="range"
-                            id="status"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={status}
-                            onChange={(e) => setStatus(Number(e.target.value))}
-                            disabled={isSaving}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                    </div>
-
-                    {/* Save Button */}
-                    <div className="flex justify-end pt-4">
-                        <button
-                            type="submit"
-                            disabled={isSaving}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50"
-                        >
-                            {isSaving && <Loader size={18} className="animate-spin" />}
-                            <Plus size={18} />
-                            {isEditing ? "Update Progress" : "Create Task"}
-                        </button>
-                    </div>
-                </form>
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="bg-white border-8 border-black p-6 md:p-8 w-full max-w-lg relative shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+                {children}
             </div>
         </div>
     );
 };
 
-// main page component
 export default function Page() {
     const params = useParams<{ id: string }>();
     const id = params.id;
@@ -340,9 +143,15 @@ export default function Page() {
 
     const [isApplying, setIsApplying] = useState(false);
     const [isSavingTask, setIsSavingTask] = useState(false);
-    const [isDeletingTask, setIsDeletingTask] = useState(false);
 
-    // fetch user clubs and all clubs
+    const [modalData, setModalData] = useState({
+        title: "",
+        description: "",
+        dueDate: new Date().toISOString().split("T")[0],
+        status: 0,
+        givenBy: "personal" as "personal" | "club"
+    });
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -350,16 +159,10 @@ export default function Page() {
                     fetch('/api/user/clubs/get-my-clubs'),
                     fetch('/api/user/clubs/get-all-clubs')
                 ]);
-                if (clubsRes.ok) {
-                    const clubs = await clubsRes.json();
-                    setUserClubs(clubs);
-                }
-                if (allClubsRes.ok) {
-                    const clubs = await allClubsRes.json();
-                    setAllClubs(clubs);
-                }
+                if (clubsRes.ok) setUserClubs(await clubsRes.json());
+                if (allClubsRes.ok) setAllClubs(await allClubsRes.json());
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error(error);
             } finally {
                 setLoading(false);
             }
@@ -367,7 +170,6 @@ export default function Page() {
         fetchData();
     }, []);
 
-    // fetch tasks for the club
     useEffect(() => {
         const fetchTasks = async () => {
             if (!user || !id) return;
@@ -376,7 +178,7 @@ export default function Page() {
                 if (res.ok) {
                     const data = await res.json();
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const allTasks = data.map((t: any) => ({
+                    setTasks(data.map((t: any) => ({
                         id: t.progressId,
                         createdAt: new Date(t.createdAt._seconds * 1000).toISOString(),
                         department: "Club",
@@ -384,18 +186,15 @@ export default function Page() {
                         title: t.title,
                         dueDate: new Date(t.dueDate._seconds * 1000).toISOString().split('T')[0],
                         status: t.status,
-                        givenBy: t.givenBy as "personal" | "club"
-                    }));
-                    setTasks(allTasks);
+                        givenBy: t.givenBy
+                    })));
                 }
             } catch (error) {
-                console.error('Error fetching tasks:', error);
+                console.error(error);
             }
         };
         fetchTasks();
     }, [user, id, refetchTrigger]);
-
-    const clubData = allClubs.find(c => c.id === id);
 
     const handleApply = async () => {
         if (!selectedDepartment) return;
@@ -406,251 +205,274 @@ export default function Page() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ clubId: id, department: selectedDepartment })
             });
-            if (res.ok) {
-                setApplied(true);
-            }
-        } catch (error) {
-            console.error('Error applying:', error);
+            if (res.ok) setApplied(true);
         } finally {
             setIsApplying(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-gray-500">Loading...</div>
-            </div>
-        );
-    }
-
-    if (!clubData) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-gray-500">Club not found</div>
-            </div>
-        );
-    }
-
-    const isMember = userClubs.includes(id);
-
-    if (!isMember) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-4">Apply to {clubData.name}</h1>
-                    {applied ? (
-                        <p className="text-green-600 text-center">Application submitted successfully! Waiting for approval.</p>
-                    ) : (
-                        <>
-                            <div className="mb-4">
-                                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Department
-                                </label>
-                                <select
-                                    id="department"
-                                    value={selectedDepartment}
-                                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                                    disabled={isApplying}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Choose a department</option>
-                                    {clubData.departments.map((dept: string) => (
-                                        <option key={dept} value={dept}>
-                                            {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <button
-                                onClick={handleApply}
-                                disabled={isApplying}
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                            >
-                                {isApplying && <Loader size={16} className="animate-spin" />}
-                                Apply
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    // Filter tasks
-    const clubTasks = tasks.filter((task) => task.givenBy === "club");
-    const personalTasks = tasks.filter((task) => task.givenBy === "personal");
-
     const handleOpenModal = (task: Task | null) => {
-        setEditingTask(task);
+        if (task) {
+            setEditingTask(task);
+            setModalData({
+                title: task.title,
+                description: task.description,
+                dueDate: task.dueDate,
+                status: task.status,
+                givenBy: task.givenBy
+            });
+        } else {
+            setEditingTask(null);
+            setModalData({
+                title: "",
+                description: "",
+                dueDate: new Date().toISOString().split("T")[0],
+                status: 0,
+                givenBy: "personal"
+            });
+        }
         setIsModalOpen(true);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setEditingTask(null);
-    };
-
-    const handleSaveTask = async (
-        taskData: Omit<Task, "id" | "createdAt" | "department"> & { id?: string }
-    ) => {
+    const handleSaveTask = async (e: React.FormEvent) => {
+        e.preventDefault();
         setIsSavingTask(true);
-        if (taskData.id) {
+        if (editingTask?.id) {
             try {
                 const res = await fetch('/api/user/tasks/update-progress', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ progressId: taskData.id, status: taskData.status }),
+                    body: JSON.stringify({ progressId: editingTask.id, status: modalData.status }),
                 });
-
                 if (res.ok) {
-                    setTasks(
-                        tasks.map((t) =>
-                            t.id === taskData.id ? { ...t, status: taskData.status } : t
-                        )
-                    );
+                    setTasks(tasks.map(t => t.id === editingTask.id ? { ...t, status: modalData.status } : t));
                 }
             } catch (error) {
-                console.error('Error updating progress:', error);
+                console.error(error);
             }
         } else {
-            // Add new task via API
-            const createdAt = {
-                _seconds: Math.floor(Date.now() / 1000),
-                _nanoseconds: 0,
-            };
-            const dueDateObj = new Date(taskData.dueDate);
-            const dueDate = {
-                _seconds: Math.floor(dueDateObj.getTime() / 1000),
-                _nanoseconds: 0,
-            };
-
             const payload = {
                 userId: user?.uid,
                 clubId: id,
-                createdAt,
-                description: taskData.description,
-                dueDate,
-                givenBy: taskData.givenBy,
-                status: taskData.status,
-                title: taskData.title,
+                createdAt: { _seconds: Math.floor(Date.now() / 1000), _nanoseconds: 0 },
+                description: modalData.description,
+                dueDate: { _seconds: Math.floor(new Date(modalData.dueDate).getTime() / 1000), _nanoseconds: 0 },
+                givenBy: modalData.givenBy,
+                status: modalData.status,
+                title: modalData.title,
             };
-
             try {
                 const res = await fetch('/api/user/tasks/add-task', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
-
-                if (res.ok) {
-                    setRefetchTrigger(prev => prev + 1);
-                }
+                if (res.ok) setRefetchTrigger(prev => prev + 1);
             } catch (error) {
-                console.error('Error adding task:', error);
+                console.error(error);
             }
         }
         setIsSavingTask(false);
-        handleCloseModal();
+        setIsModalOpen(false);
     };
 
     const handleDeleteTask = async (task: Task) => {
-        setIsDeletingTask(true);
         try {
             const res = await fetch('/api/user/tasks/delete-personal-task', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ progressId: task.id }),
             });
-
-            if (res.ok) {
-                setTasks(tasks.filter((t) => t.id !== task.id));
-            }
+            if (res.ok) setTasks(tasks.filter((t) => t.id !== task.id));
         } catch (error) {
-            console.error('Error deleting task:', error);
-        } finally {
-            setIsDeletingTask(false);
+            console.error(error);
         }
     };
 
-    return (
-        <div className="min-h-screen bg-slate-50 relative">
-            <DashboardNavbar user={user} />
-            <div className="max-w-7xl mx-auto space-y-6 p-4">
+    if (loading) return (
+        <div className="min-h-screen bg-[#FDFCFB] flex items-center justify-center">
+            <div className="border-4 border-black p-6 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] font-black uppercase italic animate-pulse">
+                Accessing Logs...
+            </div>
+        </div>
+    );
 
+    const clubData = allClubs.find(c => c.id === id);
+    if (!clubData) return <div className="p-20 font-black uppercase text-rose-600">Club Void</div>;
 
-                {/* Task Sections */}
-                <main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Club Tasks */}
-                    <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <div className="flex items-center gap-3 mb-4">
-                            <ClipboardCheck className="text-blue-600" size={24} />
-                            <h2 className="text-xl font-semibold text-gray-800">
-                                Club Tasks ({clubTasks.length})
-                            </h2>
-                        </div>
-                        <div className="space-y-4">
-                            {clubTasks.length > 0 ? (
-                                clubTasks.map((task) => (
-                                    <TaskCard
-                                        key={task.id}
-                                        task={task}
-                                        onEdit={handleOpenModal}
-                                        onDelete={handleDeleteTask}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">
-                                    No club tasks assigned.
-                                </p>
-                            )}
-                        </div>
-                    </section>
+    const isMember = userClubs.includes(id);
 
-                    {/* Personal Tasks */}
-                    <section className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <div className="flex items-center gap-3 mb-4">
-                            <User className="text-green-600" size={24} />
-                            <h2 className="text-xl font-semibold text-gray-800">
-                                Personal Tasks ({personalTasks.length})
-                            </h2>
-                        </div>
-                        <div className="space-y-4">
-                            {personalTasks.length > 0 ? (
-                                personalTasks.map((task) => (
-                                    <TaskCard
-                                        key={task.id}
-                                        task={task}
-                                        onEdit={handleOpenModal}
-                                        onDelete={handleDeleteTask}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">
-                                    No personal tasks added.
-                                </p>
-                            )}
-                        </div>
-                    </section>
+    if (!isMember) {
+        return (
+            <div className="min-h-screen bg-[#FDFCFB]">
+                <DashboardNavbar user={user} />
+                <main className="p-6 md:p-12 max-w-2xl mx-auto mt-10">
+                    <div className="bg-white border-8 border-black p-8 shadow-[16px_16px_0px_0px_rgba(79,70,229,1)]">
+                        <h1 className="text-4xl font-black uppercase italic tracking-tighter mb-2 break-words">{clubData.name}</h1>
+                        <p className="font-bold uppercase text-[10px] tracking-widest text-slate-400 mb-10">Membership Required</p>
+
+                        {applied ? (
+                            <div className="bg-emerald-400 border-4 border-black p-4 font-black uppercase italic text-center">
+                                Application Transmitted. Awaiting Approval.
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block font-black uppercase text-xs mb-2">Division Selection</label>
+                                    <select
+                                        value={selectedDepartment}
+                                        onChange={(e) => setSelectedDepartment(e.target.value)}
+                                        className="w-full border-4 border-black p-4 font-black uppercase bg-slate-50 outline-none"
+                                    >
+                                        <option value="">Select Department</option>
+                                        {clubData.departments.map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    onClick={handleApply}
+                                    disabled={isApplying}
+                                    className="w-full bg-black text-white border-4 border-black p-5 font-black uppercase shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {isApplying ? "Transmitting..." : "Initiate Application"}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </main>
             </div>
+        );
+    }
+
+    const clubTasks = tasks.filter(t => t.givenBy === "club");
+    const personalTasks = tasks.filter(t => t.givenBy === "personal");
+
+    return (
+        <div className="min-h-screen bg-[#FDFCFB] text-black pb-24 overflow-x-hidden">
+            <DashboardNavbar user={user} />
+
+            <main className="p-4 sm:p-8 md:p-12 max-w-7xl mx-auto">
+                <header className="mb-12">
+                    <Link href="/dashboard">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-white border-4 border-black font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer mb-8">
+                            <ArrowLeft size={16} /> Hub Directory
+                        </button>
+                    </Link>
+
+                    <div className="flex items-center gap-3 mb-2">
+                        <Compass size={24} strokeWidth={2.5} className="text-indigo-600" />
+                        <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Explore: {clubData.name}</h1>
+                    </div>
+                    <div className="h-2 w-full bg-black shadow-[4px_4px_0px_0px_rgba(79,70,229,1)]" />
+                </header>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <section className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(79,70,229,1)]">
+                        <div className="flex items-center gap-3 mb-8 border-b-4 border-black pb-4">
+                            <ClipboardCheck className="text-indigo-600" size={28} />
+                            <h2 className="text-2xl font-black uppercase italic tracking-tighter">Club Objectives ({clubTasks.length})</h2>
+                        </div>
+                        <div className="space-y-6">
+                            {clubTasks.length > 0 ? (
+                                clubTasks.map(task => <TaskCard key={task.id} task={task} onEdit={handleOpenModal} onDelete={handleDeleteTask} />)
+                            ) : (
+                                <div className="border-4 border-black border-dashed p-10 text-center font-black uppercase text-slate-300">No Operations assigned</div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(52,211,153,1)]">
+                        <div className="flex items-center gap-3 mb-8 border-b-4 border-black pb-4">
+                            <User className="text-emerald-500" size={28} />
+                            <h2 className="text-2xl font-black uppercase italic tracking-tighter">Solo Directives ({personalTasks.length})</h2>
+                        </div>
+                        <div className="space-y-6">
+                            {personalTasks.length > 0 ? (
+                                personalTasks.map(task => <TaskCard key={task.id} task={task} onEdit={handleOpenModal} onDelete={handleDeleteTask} />)
+                            ) : (
+                                <div className="border-4 border-black border-dashed p-10 text-center font-black uppercase text-slate-300">No personal entries</div>
+                            )}
+                        </div>
+                    </section>
+                </div>
+            </main>
 
             <button
                 onClick={() => handleOpenModal(null)}
-                className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center z-50"
-                aria-label="Add new task"
+                className="fixed bottom-8 right-8 w-16 h-16 bg-black text-white border-4 border-black rounded-none shadow-[6px_6px_0px_0px_rgba(79,70,229,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center z-50 cursor-pointer"
             >
-                <Plus size={24} />
+                <Plus size={32} strokeWidth={3} />
             </button>
 
-            {/* Modal */}
-            <TaskModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                onSave={handleSaveTask}
-                task={editingTask}
-                isSaving={isSavingTask}
-            />
+            <ModalWrapper isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                <h2 className="text-3xl font-black uppercase italic mb-8 border-b-4 border-black pb-4">
+                    {editingTask?.id ? "Update Status" : "New Entry"}
+                </h2>
+
+                <form onSubmit={handleSaveTask} className="space-y-6">
+                    {!editingTask?.id && (
+                        <>
+                            <input
+                                placeholder="OBJECTIVE TITLE"
+                                value={modalData.title}
+                                onChange={e => setModalData({ ...modalData, title: e.target.value })}
+                                required
+                                className="w-full border-4 border-black p-4 font-black uppercase outline-none focus:bg-indigo-50"
+                            />
+                            <textarea
+                                placeholder="OPERATIONAL NOTES"
+                                value={modalData.description}
+                                onChange={e => setModalData({ ...modalData, description: e.target.value })}
+                                rows={3}
+                                className="w-full border-4 border-black p-4 font-black uppercase outline-none focus:bg-indigo-50"
+                            />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <input
+                                    type="date"
+                                    value={modalData.dueDate}
+                                    onChange={e => setModalData({ ...modalData, dueDate: e.target.value })}
+                                    required
+                                    className="w-full border-4 border-black p-4 font-black uppercase outline-none"
+                                />
+                                <select
+                                    value={modalData.givenBy}
+                                    onChange={e => setModalData({ ...modalData, givenBy: e.target.value as "personal" | "club" })}
+                                    className="w-full border-4 border-black p-4 font-black uppercase outline-none bg-white"
+                                >
+                                    <option value="personal">Personal</option>
+                                    <option value="club">Club</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="bg-slate-50 border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                        <label className="flex justify-between font-black uppercase text-xs mb-4">
+                            Completion Level <span>{modalData.status}%</span>
+                        </label>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={modalData.status}
+                            onChange={e => setModalData({ ...modalData, status: Number(e.target.value) })}
+                            className="w-full h-8 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-runnable-track]:bg-black [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-black [&::-webkit-slider-thumb]:-mt-2"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSavingTask}
+                        className="w-full bg-black text-white border-4 border-black p-5 font-black uppercase shadow-[8px_8px_0px_0px_rgba(79,70,229,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer flex items-center justify-center gap-3"
+                    >
+                        {isSavingTask && <Loader size={20} className="animate-spin" />}
+                        <Save size={20} />
+                        {editingTask?.id ? "Sync Changes" : "Confirm Entry"}
+                    </button>
+                </form>
+            </ModalWrapper>
         </div>
     );
 }

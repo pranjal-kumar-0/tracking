@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useAuth } from "../../../../../providers/AuthProvider";
 import DashboardNavbar from "@/components/common/dashboard-navbar";
-import { UserCircle, Briefcase, Plus, X, Edit } from 'lucide-react';
+import { UserCircle, Briefcase, Plus, X, Edit, Trash2, Save, RotateCcw, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 interface Club {
   id: string;
@@ -19,6 +21,9 @@ interface Club {
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth();
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
+
   const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,14 +34,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [editingDept, setEditingDept] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  const fetchClub = async (id: string) => {
+  const fetchClub = async (clubId: string) => {
     try {
-      const response = await fetch(`/api/admin/clubs/get-my-club?clubId=${id}`);
+      const response = await fetch(`/api/admin/clubs/get-my-club?clubId=${clubId}`);
       if (!response.ok) throw new Error('Failed to fetch club');
       const data: Club = await response.json();
       setClub(data);
-      setDepartments(data.departments);
-      setAdmins(data.adminIds);
+      setDepartments(data.departments || []);
+      setAdmins(data.adminIds || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -45,8 +50,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   };
 
   useEffect(() => {
-    params.then(({ id }) => fetchClub(id));
-  }, [params]);
+    if (id) fetchClub(id);
+  }, [id]);
 
   const addDepartment = async () => {
     if (!newDepartment.trim() || departments.includes(newDepartment.trim())) return;
@@ -59,8 +64,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       if (res.ok) {
         setDepartments([...departments, newDepartment.trim()]);
         setNewDepartment('');
-      } else {
-        alert('Failed to add department');
       }
     } catch (error) {
       alert('Error adding department');
@@ -68,36 +71,22 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const removeDepartment = async (dep: string) => {
-    if (!confirm(`Are you sure you want to delete the department "${dep}"? This will set all members' departments to "no-department".`)) return;
+    if (!confirm(`Confirm Deletion: "${dep}"? members will be unassigned.`)) return;
     try {
       const res = await fetch('/api/admin/departments/delete-department', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clubId: club!.id, department: dep })
       });
-      if (res.ok) {
-        setDepartments(departments.filter(d => d !== dep));
-      } else {
-        alert('Failed to delete department');
-      }
+      if (res.ok) setDepartments(departments.filter(d => d !== dep));
     } catch (e) {
       alert('Error deleting department');
     }
   };
 
-  const startEdit = (dep: string) => {
-    setEditingDept(dep);
-    setEditName(dep);
-  };
-
-  const cancelEdit = () => {
-    setEditingDept(null);
-    setEditName('');
-  };
-
   const saveEdit = async () => {
     if (!editName.trim() || editName.trim() === editingDept) {
-      cancelEdit();
+      setEditingDept(null);
       return;
     }
     try {
@@ -108,9 +97,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
       if (res.ok) {
         setDepartments(departments.map(d => d === editingDept ? editName.trim() : d));
-        cancelEdit();
-      } else {
-        alert('Failed to update department');
+        setEditingDept(null);
       }
     } catch (e) {
       console.error('Error updating department', e);
@@ -128,8 +115,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       if (res.ok) {
         setAdmins([...admins, newAdmin.trim()]);
         setNewAdmin('');
-      } else {
-        alert('Failed to add admin');
       }
     } catch (error) {
       alert('Error adding admin');
@@ -137,170 +122,147 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const removeAdmin = async (admin: string) => {
-    if (!confirm(`Are you sure you want to remove ${admin} as admin?`)) return;
+    if (!confirm(`Revoke admin access for ${admin}?`)) return;
     try {
       const res = await fetch('/api/admin/admins/delete-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clubId: club!.id, email: admin })
       });
-      if (res.ok) {
-        setAdmins(admins.filter(a => a !== admin));
-      } else {
-        alert('Failed to remove admin');
-      }
+      if (res.ok) setAdmins(admins.filter(a => a !== admin));
     } catch (error) {
       alert('Error removing admin');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
-        <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div>Loading club details...</div>
-        </main>
+  if (loading) return (
+    <div className="min-h-screen bg-[#FDFCFB]">
+      <DashboardNavbar user={user} />
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="border-4 border-black p-6 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] font-black uppercase italic">
+          Loading Config...
+        </div>
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
-        <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div>Error: {error}</div>
-        </main>
-      </div>
-    );
-  }
-
-  if (!club) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900">
-        <DashboardNavbar user={user} />
-        <main className="p-8">
-          <div>Club not found.</div>
-        </main>
-      </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-[#FDFCFB] text-black pb-20">
       <DashboardNavbar user={user} />
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-10 text-center">
-            <h1 className="text-4xl font-bold tracking-tighter text-gray-800">
-              {club.name}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Created: {new Date(club.createdAt._seconds * 1000).toLocaleDateString()}
+      <main className="p-4 sm:p-8 md:p-12 max-w-5xl mx-auto">
+        
+        {/* Header Section with Back Button */}
+        <header className="mb-16">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+            <Link href={`/dashboard/c/${id}`}>
+              <button className="w-fit flex items-center gap-2 px-4 py-2 bg-white border-4 border-black font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer">
+                <ArrowLeft size={16} /> Exit to Directory
+              </button>
+            </Link>
+          </div>
+          
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter uppercase italic leading-none mb-4">
+            Control <span className="text-indigo-600">Panel</span>
+          </h1>
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-16 bg-black" />
+            <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+              {club?.name} — Operational Settings
             </p>
           </div>
+        </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Departments Section */}
-            <div className="bg-white p-6 rounded-2xl shadow-md lg:col-span-2">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <Briefcase className="h-6 w-6 text-indigo-500" />
-                Departments
-              </h2>
-              <div className="mb-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newDepartment}
-                    onChange={(e) => setNewDepartment(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Add new department"
-                  />
-                  <button
-                    onClick={addDepartment}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {departments.map(dep => (
-                  <div key={dep} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
-                    {editingDept === dep ? (
-                      <>
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="flex-1 px-2 py-1 border rounded"
-                        />
-                        <button onClick={saveEdit} className="ml-2 text-green-600">Save</button>
-                        <button onClick={cancelEdit} className="ml-2 text-gray-600">Cancel</button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-sm text-gray-700">{dep}</span>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => startEdit(dep)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => removeDepartment(dep)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
+        <div className="grid grid-cols-1 gap-12">
+          
+          {/* Departments - Indigo Theme */}
+          <section className="border-4 border-black bg-white p-6 md:p-8 shadow-[10px_10px_0px_0px_rgba(79,70,229,1)]">
+            <div className="flex items-center gap-3 mb-8 border-b-4 border-black pb-4">
+              <Briefcase className="h-8 w-8 text-indigo-600" />
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter text-indigo-600">Departments</h2>
             </div>
 
-            {/* Admins Section */}
-            <div className="bg-white p-6 rounded-2xl shadow-md lg:col-span-2">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <UserCircle className="h-6 w-6 text-indigo-500" />
-                Admins
-              </h2>
-              <div className="mb-4">
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={newAdmin}
-                    onChange={(e) => setNewAdmin(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Add new admin email"
-                  />
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <input
+                type="text"
+                value={newDepartment}
+                onChange={(e) => setNewDepartment(e.target.value)}
+                className="flex-1 px-4 py-4 border-4 border-black font-bold uppercase text-sm bg-slate-50 focus:bg-white outline-none"
+                placeholder="New Division Name"
+              />
+              <button
+                onClick={addDepartment}
+                className="px-8 py-4 bg-indigo-600 text-white border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Plus size={20} /> Deploy
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {departments.map(dep => (
+                <div key={dep} className="flex items-center justify-between border-4 border-black p-4 bg-slate-50 group hover:bg-white transition-colors">
+                  {editingDept === dep ? (
+                    <div className="flex w-full gap-2">
+                      <input
+                        autoFocus
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="flex-1 px-2 py-1 border-2 border-black font-bold uppercase text-xs outline-none"
+                      />
+                      <button onClick={saveEdit} className="p-1 hover:text-green-600 transition-colors"><Save size={18}/></button>
+                      <button onClick={() => setEditingDept(null)} className="p-1 hover:text-red-600 transition-colors"><RotateCcw size={18}/></button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="font-black uppercase text-sm tracking-tight">{dep}</span>
+                      <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => {setEditingDept(dep); setEditName(dep);}} className="hover:text-indigo-600"><Edit size={16}/></button>
+                        <button onClick={() => removeDepartment(dep)} className="hover:text-red-600"><Trash2 size={16}/></button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Admins - Deep Red Theme */}
+          <section className="border-4 border-red-950 bg-white p-6 md:p-8 shadow-[10px_10px_0px_0px_rgba(69,10,10,1)]">
+            <div className="flex items-center gap-3 mb-8 border-b-4 border-red-950 pb-4">
+              <ShieldAlert className="h-8 w-8 text-red-900" />
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-900">Privileged Access</h2>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <input
+                type="email"
+                value={newAdmin}
+                onChange={(e) => setNewAdmin(e.target.value)}
+                className="flex-1 px-4 py-4 border-4 border-red-950 font-bold uppercase text-sm bg-red-50/30 focus:bg-white outline-none"
+                placeholder="Admin Email Address"
+              />
+              <button
+                onClick={addAdmin}
+                className="px-8 py-4 bg-red-950 text-white border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Plus size={20} /> Authorize
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {admins.map(admin => (
+                <div key={admin} className="flex items-center justify-between border-2 border-red-950 p-3 bg-red-50/50">
+                  <span className="font-bold text-xs uppercase tracking-tighter text-red-950 truncate mr-4">{admin}</span>
                   <button
-                    onClick={addAdmin}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                    onClick={() => removeAdmin(admin)}
+                    className="p-2 border-2 border-red-950 bg-white hover:bg-red-950 hover:text-white transition-all cursor-pointer"
                   >
-                    <Plus className="h-4 w-4" />
+                    <X size={14} />
                   </button>
                 </div>
-              </div>
-              <div className="space-y-2">
-                {admins.map(admin => (
-                  <div key={admin} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
-                    <span className="text-sm text-gray-700 truncate">{admin}</span>
-                    <button
-                      onClick={() => removeAdmin(admin)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
-          </div>
+          </section>
+
         </div>
       </main>
     </div>
