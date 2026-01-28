@@ -221,13 +221,25 @@ export default function Page() {
     setSelectedDepartment(applicant.department);
     setModalOpen(true);
   };
-
   const groupedMembers = members.reduce((acc, mem) => {
     const dept = mem.department || 'General';
     if (!acc[dept]) acc[dept] = [];
     acc[dept].push(mem);
     return acc;
   }, {} as Record<string, User[]>);
+
+  // Sort departments alphabetically and sort members (admins first)
+  const sortedDepartments = Object.entries(groupedMembers)
+    .sort(([deptA], [deptB]) => deptA.localeCompare(deptB))
+    .map(([dept, deptMembers]) => [
+      dept,
+      deptMembers.sort((a, b) => {
+        // Admins first
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (a.role !== 'admin' && b.role === 'admin') return 1;
+        return 0;
+      })
+    ] as [string, User[]]);
 
   if (loading) {
     return (
@@ -265,11 +277,9 @@ export default function Page() {
                 Settings
               </button>
             </Link>
-          </div>
-
-          {/* Members List */}
+          </div>          {/* Members List */}
           <div className="space-y-12 sm:space-y-20">
-            {Object.entries(groupedMembers).map(([dept, deptMembers]) => (
+            {sortedDepartments.map(([dept, deptMembers]) => (
               <section key={dept}>
                 <div className="flex items-center gap-4 mb-8">
                     <div className="bg-black text-white p-2 border-2 border-black hidden sm:block">
